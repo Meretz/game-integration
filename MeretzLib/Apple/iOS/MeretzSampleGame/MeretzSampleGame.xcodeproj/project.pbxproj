@@ -1,0 +1,337 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F895528F1CFDE75600B59E80 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = F895528E1CFDE75600B59E80 /* main.m */; };
+		F89552921CFDE75600B59E80 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552911CFDE75600B59E80 /* AppDelegate.m */; };
+		F89552941CFDE75600B59E80 /* art.scnassets in Resources */ = {isa = PBXBuildFile; fileRef = F89552931CFDE75600B59E80 /* art.scnassets */; };
+		F89552971CFDE75600B59E80 /* GameViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552961CFDE75600B59E80 /* GameViewController.m */; };
+		F895529A1CFDE75600B59E80 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F89552981CFDE75600B59E80 /* Main.storyboard */; };
+		F895529C1CFDE75600B59E80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F895529B1CFDE75600B59E80 /* Assets.xcassets */; };
+		F895529F1CFDE75600B59E80 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F895529D1CFDE75600B59E80 /* LaunchScreen.storyboard */; };
+		F89552A71CFDE7A500B59E80 /* libMeretz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F89552A61CFDE7A500B59E80 /* libMeretz.a */; };
+		F89552AA1CFDE7C200B59E80 /* include in Resources */ = {isa = PBXBuildFile; fileRef = F89552A91CFDE7C200B59E80 /* include */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		F895528A1CFDE75600B59E80 /* MeretzSampleGame.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MeretzSampleGame.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F895528E1CFDE75600B59E80 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		F89552901CFDE75600B59E80 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		F89552911CFDE75600B59E80 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		F89552931CFDE75600B59E80 /* art.scnassets */ = {isa = PBXFileReference; lastKnownFileType = wrapper.scnassets; path = art.scnassets; sourceTree = "<group>"; };
+		F89552951CFDE75600B59E80 /* GameViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GameViewController.h; sourceTree = "<group>"; };
+		F89552961CFDE75600B59E80 /* GameViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GameViewController.m; sourceTree = "<group>"; };
+		F89552991CFDE75600B59E80 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		F895529B1CFDE75600B59E80 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F895529E1CFDE75600B59E80 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		F89552A01CFDE75600B59E80 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F89552A61CFDE7A500B59E80 /* libMeretz.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libMeretz.a; path = MeretzSampleGame/Meretz/lib/libMeretz.a; sourceTree = "<group>"; };
+		F89552A91CFDE7C200B59E80 /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; name = include; path = Meretz/include; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F89552871CFDE75600B59E80 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F89552A71CFDE7A500B59E80 /* libMeretz.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		F89552811CFDE75600B59E80 = {
+			isa = PBXGroup;
+			children = (
+				F89552A61CFDE7A500B59E80 /* libMeretz.a */,
+				F895528C1CFDE75600B59E80 /* MeretzSampleGame */,
+				F895528B1CFDE75600B59E80 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F895528B1CFDE75600B59E80 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F895528A1CFDE75600B59E80 /* MeretzSampleGame.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F895528C1CFDE75600B59E80 /* MeretzSampleGame */ = {
+			isa = PBXGroup;
+			children = (
+				F89552A81CFDE7AC00B59E80 /* Meretz */,
+				F89552901CFDE75600B59E80 /* AppDelegate.h */,
+				F89552911CFDE75600B59E80 /* AppDelegate.m */,
+				F89552931CFDE75600B59E80 /* art.scnassets */,
+				F89552951CFDE75600B59E80 /* GameViewController.h */,
+				F89552961CFDE75600B59E80 /* GameViewController.m */,
+				F89552981CFDE75600B59E80 /* Main.storyboard */,
+				F895529B1CFDE75600B59E80 /* Assets.xcassets */,
+				F895529D1CFDE75600B59E80 /* LaunchScreen.storyboard */,
+				F89552A01CFDE75600B59E80 /* Info.plist */,
+				F895528D1CFDE75600B59E80 /* Supporting Files */,
+			);
+			path = MeretzSampleGame;
+			sourceTree = "<group>";
+		};
+		F895528D1CFDE75600B59E80 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				F895528E1CFDE75600B59E80 /* main.m */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		F89552A81CFDE7AC00B59E80 /* Meretz */ = {
+			isa = PBXGroup;
+			children = (
+				F89552A91CFDE7C200B59E80 /* include */,
+			);
+			name = Meretz;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F89552891CFDE75600B59E80 /* MeretzSampleGame */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F89552A31CFDE75600B59E80 /* Build configuration list for PBXNativeTarget "MeretzSampleGame" */;
+			buildPhases = (
+				F89552861CFDE75600B59E80 /* Sources */,
+				F89552871CFDE75600B59E80 /* Frameworks */,
+				F89552881CFDE75600B59E80 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MeretzSampleGame;
+			productName = MeretzSampleGame;
+			productReference = F895528A1CFDE75600B59E80 /* MeretzSampleGame.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F89552821CFDE75600B59E80 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0730;
+				ORGANIZATIONNAME = Meretz;
+				TargetAttributes = {
+					F89552891CFDE75600B59E80 = {
+						CreatedOnToolsVersion = 7.3.1;
+					};
+				};
+			};
+			buildConfigurationList = F89552851CFDE75600B59E80 /* Build configuration list for PBXProject "MeretzSampleGame" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = F89552811CFDE75600B59E80;
+			productRefGroup = F895528B1CFDE75600B59E80 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F89552891CFDE75600B59E80 /* MeretzSampleGame */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F89552881CFDE75600B59E80 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F89552941CFDE75600B59E80 /* art.scnassets in Resources */,
+				F895529F1CFDE75600B59E80 /* LaunchScreen.storyboard in Resources */,
+				F895529C1CFDE75600B59E80 /* Assets.xcassets in Resources */,
+				F89552AA1CFDE7C200B59E80 /* include in Resources */,
+				F895529A1CFDE75600B59E80 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F89552861CFDE75600B59E80 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F89552921CFDE75600B59E80 /* AppDelegate.m in Sources */,
+				F89552971CFDE75600B59E80 /* GameViewController.m in Sources */,
+				F895528F1CFDE75600B59E80 /* main.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		F89552981CFDE75600B59E80 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				F89552991CFDE75600B59E80 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		F895529D1CFDE75600B59E80 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				F895529E1CFDE75600B59E80 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		F89552A11CFDE75600B59E80 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F89552A21CFDE75600B59E80 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F89552A41CFDE75600B59E80 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = MeretzSampleGame/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/MeretzSampleGame/Meretz/lib",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = IVxIV.MeretzSampleGame;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F89552A51CFDE75600B59E80 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = MeretzSampleGame/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/MeretzSampleGame/Meretz/lib",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = IVxIV.MeretzSampleGame;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F89552851CFDE75600B59E80 /* Build configuration list for PBXProject "MeretzSampleGame" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F89552A11CFDE75600B59E80 /* Debug */,
+				F89552A21CFDE75600B59E80 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F89552A31CFDE75600B59E80 /* Build configuration list for PBXNativeTarget "MeretzSampleGame" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F89552A41CFDE75600B59E80 /* Debug */,
+				F89552A51CFDE75600B59E80 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F89552821CFDE75600B59E80 /* Project object */;
+}
