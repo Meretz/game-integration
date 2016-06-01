@@ -11,9 +11,7 @@
 		F895526A1CFDE4CB00B59E80 /* Meretz.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552691CFDE4CB00B59E80 /* Meretz.m */; };
 		F89552711CFDE51900B59E80 /* MeretzResult.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552701CFDE51900B59E80 /* MeretzResult.m */; };
 		F89552781CFDE53100B59E80 /* MeretzVendorConsumeResult.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552731CFDE53100B59E80 /* MeretzVendorConsumeResult.m */; };
-		F89552791CFDE53100B59E80 /* MeretzVendorUsePointsResult.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552741CFDE53100B59E80 /* MeretzVendorUsePointsResult.m */; };
 		F895527A1CFDE53100B59E80 /* MeretzVendorUserConnectResult.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552751CFDE53100B59E80 /* MeretzVendorUserConnectResult.m */; };
-		F895527B1CFDE53100B59E80 /* MeretzVendorUserDisconnectResult.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552761CFDE53100B59E80 /* MeretzVendorUserDisconnectResult.m */; };
 		F895527C1CFDE53100B59E80 /* MeretzVendorUserProfileResult.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552771CFDE53100B59E80 /* MeretzVendorUserProfileResult.m */; };
 		F89552AD1CFDF7F700B59E80 /* MeretzTask.m in Sources */ = {isa = PBXBuildFile; fileRef = F89552AC1CFDF7F700B59E80 /* MeretzTask.m */; };
 /* End PBXBuildFile section */
@@ -37,9 +35,7 @@
 		F89552691CFDE4CB00B59E80 /* Meretz.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Meretz.m; sourceTree = "<group>"; };
 		F89552701CFDE51900B59E80 /* MeretzResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MeretzResult.m; sourceTree = "<group>"; };
 		F89552731CFDE53100B59E80 /* MeretzVendorConsumeResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MeretzVendorConsumeResult.m; path = Vendor/MeretzVendorConsumeResult.m; sourceTree = "<group>"; };
-		F89552741CFDE53100B59E80 /* MeretzVendorUsePointsResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MeretzVendorUsePointsResult.m; path = Vendor/MeretzVendorUsePointsResult.m; sourceTree = "<group>"; };
 		F89552751CFDE53100B59E80 /* MeretzVendorUserConnectResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MeretzVendorUserConnectResult.m; path = Vendor/MeretzVendorUserConnectResult.m; sourceTree = "<group>"; };
-		F89552761CFDE53100B59E80 /* MeretzVendorUserDisconnectResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MeretzVendorUserDisconnectResult.m; path = Vendor/MeretzVendorUserDisconnectResult.m; sourceTree = "<group>"; };
 		F89552771CFDE53100B59E80 /* MeretzVendorUserProfileResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MeretzVendorUserProfileResult.m; path = Vendor/MeretzVendorUserProfileResult.m; sourceTree = "<group>"; };
 		F89552AB1CFDEE3600B59E80 /* Meretz+Internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Meretz+Internal.h"; sourceTree = "<group>"; };
 		F89552AC1CFDF7F700B59E80 /* MeretzTask.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MeretzTask.m; sourceTree = "<group>"; };
@@ -89,9 +85,7 @@
 			isa = PBXGroup;
 			children = (
 				F89552731CFDE53100B59E80 /* MeretzVendorConsumeResult.m */,
-				F89552741CFDE53100B59E80 /* MeretzVendorUsePointsResult.m */,
 				F89552751CFDE53100B59E80 /* MeretzVendorUserConnectResult.m */,
-				F89552761CFDE53100B59E80 /* MeretzVendorUserDisconnectResult.m */,
 				F89552771CFDE53100B59E80 /* MeretzVendorUserProfileResult.m */,
 			);
 			name = Vendor;
@@ -153,13 +147,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F895527B1CFDE53100B59E80 /* MeretzVendorUserDisconnectResult.m in Sources */,
 				F89552AD1CFDF7F700B59E80 /* MeretzTask.m in Sources */,
 				F895526A1CFDE4CB00B59E80 /* Meretz.m in Sources */,
 				F895527C1CFDE53100B59E80 /* MeretzVendorUserProfileResult.m in Sources */,
 				F895527A1CFDE53100B59E80 /* MeretzVendorUserConnectResult.m in Sources */,
 				F89552711CFDE51900B59E80 /* MeretzResult.m in Sources */,
-				F89552791CFDE53100B59E80 /* MeretzVendorUsePointsResult.m in Sources */,
 				F89552781CFDE53100B59E80 /* MeretzVendorConsumeResult.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

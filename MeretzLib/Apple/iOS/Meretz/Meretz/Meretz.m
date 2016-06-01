@@ -13,6 +13,18 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 
 const MeretzTaskId MERETZ_TASK_ID_INVALID = -1;
 
+// server configuration defaults
+
+const unsigned short kDefaultHTTPPort= 80;
+const unsigned short kDefaultHTTPSPort= 443;
+
+#define PROTOCOL_HTTP									@"http"
+#define PROTOCOL_HTTPS									@"https"
+
+#define DEFAULT_MERETZ_SERVER_PROTOCOL					PROTOCOL_HTTPS
+#define DEFAULT_MERETZ_SERVER_HOST_NAME					@"www.meretz.com"
+#define DEFAULT_MERETZ_SERVER_PORT						kDefaultHTTPSPort
+#define DEFAULT_MERETZ_SERVER_API_PATH					@"/api"
 
 /* ---------- internal interface */
 
@@ -29,30 +41,129 @@ const MeretzTaskId MERETZ_TASK_ID_INVALID = -1;
 
 	/* ---------- globals */
 
+	NSString *gMeretzServerProtocol= nil;
+	NSString *gMeretzServerHostName= nil;
+	NSNumber *gMeretzServerPort= nil;
+	NSString *gMeretzServerApiPath= nil;
+
+	// the unique vendor access token give to you by Meretz
 	NSString *gVendorAccessToken= nil;
+	// a unique user access token retrieved initially via a vendorUserConnect call,
+	// then stored by your app and used for future interactions with the Meretz API
 	NSString *gUserAccessToken= nil;
 
+	// the master Meretz task list
 	NSMutableDictionary *gTaskDictionary= nil;
 
 	/* ---------- public methods */
 
 	// call this to initialize Meretz for your organization's application
-	- (instancetype)initWithVendorToken: (NSString *) vendorSecretToken
+	// with your unique vendor access token (as given to you by Meretz)
+	// and an optional, previously stored user access token if you have
+	// previously connected a game user
+	- (instancetype)initWithTokens: (NSString *) vendorSecretToken emptyOrSavedValue: (NSString *) userAccessToken;
 	{
-		gVendorAccessToken= vendorSecretToken;
-		gUserAccessToken= nil;
-		
-		gTaskDictionary= nil;
-		
-		self= [super init];
-		
-		if (nil != self)
+		if (0 < [vendorSecretToken length])
 		{
-			gTaskDictionary= [NSMutableDictionary dictionary];
-			NSLog(@"Meretz v.%X initialized with vendor access token '%@'", MERETZ_VERSION, gVendorAccessToken);
+			gVendorAccessToken= vendorSecretToken;
+			gUserAccessToken= @"";
+			
+			gTaskDictionary= nil;
+			
+			self= [super init];
+			
+			if (nil != self)
+			{
+				gMeretzServerProtocol= DEFAULT_MERETZ_SERVER_PROTOCOL;
+				gMeretzServerHostName= DEFAULT_MERETZ_SERVER_HOST_NAME;
+				gMeretzServerPort= [NSNumber numberWithUnsignedShort:DEFAULT_MERETZ_SERVER_PORT];
+				gMeretzServerApiPath= DEFAULT_MERETZ_SERVER_API_PATH;
+				
+				gTaskDictionary= [NSMutableDictionary dictionary];
+				
+				NSLog(@"Meretz v.%X initialized with vendor access token '%@'", MERETZ_VERSION, gVendorAccessToken);
+				if (0 < [userAccessToken length])
+				{
+					[self setUserAccessToken: userAccessToken];
+				}
+				NSLog(@"Meretz REST API server: %@", [self getMeretzServerString]);
+			}
+		}
+		else
+		{
+			NSAssert(FALSE, @"Meretz API use requires a valid vendor access token!");
+			return nil;
 		}
 		
 		return self;
+	}
+
+	// use these to configure destination server settings as needed (intended for development use only)
+	// defaults are: https://www,meretz.com/api , where:
+	// protocol= "https"
+	// hostName= "www.meretz.com"
+	// port= 443 (default for https)
+	// apiPath= "/api"
+	- (void) setMeretzServerHostName: (NSString *) hostName
+	{
+		NSAssert(0 < [hostName length], @"invalid Meretz server host name!");
+		gMeretzServerHostName= [hostName lowercaseString];
+		
+		return;
+	}
+
+	- (void) setMeretzServerPort: (NSUInteger) port
+	{
+		gMeretzServerPort= [NSNumber numberWithUnsignedShort:port];
+		
+		return;
+	}
+
+	- (void) setMeretzServerProtocol: (NSString *) protocol
+	{
+		NSAssert(0 < [protocol length], @"invalid Meretz server protocol string!");
+		NSAssert((NSOrderedSame == [protocol caseInsensitiveCompare:PROTOCOL_HTTP]) ||
+			(NSOrderedSame == [protocol caseInsensitiveCompare:PROTOCOL_HTTPS]),
+			@"Meretz server protocol must be either HTTP or HTTPS!");
+		gMeretzServerProtocol= [protocol lowercaseString];
+		
+		return;
+	}
+
+	- (void) setMeretzServerAPIPath: (NSString *) apiPath
+	{
+		// empty string is allowed
+		if (0 == [apiPath length])
+		{
+			apiPath= @"";
+		}
+		gMeretzServerApiPath= apiPath;
+		
+		return;
+	}
+
+	- (NSString *) getMeretzServerString
+	{
+		unsigned short port= [gMeretzServerPort unsignedShortValue];
+		NSString *portPart= @"";
+		NSString *result;
+		
+		if ((NSOrderedSame == [gMeretzServerProtocol caseInsensitiveCompare:PROTOCOL_HTTP]) && (kDefaultHTTPPort == port))
+		{
+			// default port being used for HTTP, no need to be explicit
+		}
+		else if ((NSOrderedSame == [gMeretzServerProtocol caseInsensitiveCompare:PROTOCOL_HTTPS]) && (kDefaultHTTPSPort == port))
+		{
+			// default port being used for HTTPS, no need to be explicit
+		}
+		else
+		{
+			portPart= [NSString stringWithFormat:@":%d", port];
+		}
+		
+		result= [NSString stringWithFormat:@"%@://%@%@%@", gMeretzServerProtocol, gMeretzServerHostName, portPart, gMeretzServerApiPath];
+		
+		return result;
 	}
 
 	// accessors for vendor/user- specific access token
@@ -68,7 +179,7 @@ const MeretzTaskId MERETZ_TASK_ID_INVALID = -1;
 			accessToken= @"";
 		}
 		
-		NSLog(@"Meretz user access token is now: %@", accessToken);
+		NSLog(@"Meretz user access token set to: %@", accessToken);
 		gUserAccessToken= accessToken;
 		
 		return;
@@ -109,7 +220,7 @@ const MeretzTaskId MERETZ_TASK_ID_INVALID = -1;
 		return MERETZ_TASK_ID_INVALID;
 	}
 
-	- (MeretzVendorUserDisconnectResult *) getVendorUserDisconnectResult: (MeretzTaskId) vendorUserDisconnectTask
+	- (MeretzResult *) getVendorUserDisconnectResult: (MeretzTaskId) vendorUserDisconnectTask
 	{
 		return nil;
 	}
@@ -131,7 +242,7 @@ const MeretzTaskId MERETZ_TASK_ID_INVALID = -1;
 		return MERETZ_TASK_ID_INVALID;
 	}
 
-	- (MeretzVendorUsePointsResult *) getVendorUsePointsResult: (MeretzTaskId) vendorUsePointsTask
+	- (MeretzResult *) getVendorUsePointsResult: (MeretzTaskId) vendorUsePointsTask
 	{
 		return nil;
 	}
@@ -157,26 +268,32 @@ const MeretzTaskId MERETZ_TASK_ID_INVALID = -1;
 		NSAssert(MeretzTaskStatusInvalid == [newTask getTaskStatus], @"cannot add an already-started task!");
 		NSNumber *taskKey= [NSNumber numberWithUnsignedInt:arc4random()];
 		NSAssert(nil != taskKey, @"failed to initialize taskKey!");
-		MeretzTaskId result= MERETZ_TASK_ID_INVALID;
+		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
 		
+		// generate a new taskID
 		while (nil != [gTaskDictionary valueForKey:[taskKey stringValue]])
 		{
 			taskKey= [NSNumber numberWithUnsignedInt:arc4random()];
 			NSAssert(nil != taskKey, @"failed to initialize taskKey!");
 		}
 		
+		// attempt to spin up the task
 		if ([newTask beginWork])
 		{
+			// set status to initial value
 			[newTask setTaskStatus: MeretzTaskStatusInProgress];
+			// add to the master task list
 			gTaskDictionary[[taskKey stringValue]]= newTask;
-			result= [taskKey unsignedIntegerValue];
+			// return the new taskId
+			taskId= [taskKey unsignedIntegerValue];
+			NSLog(@"new task '%@' (%X) added", newTask, taskId);
 		}
 		else
 		{
-			NSLog(@"beginWork() failed for %@", newTask);
+			NSLog(@"beginWork() failed for '%@'", newTask);
 		}
 		
-		return result;
+		return taskId;
 	}
 
 	- (MeretzTask *) getTask: (MeretzTaskId) taskId

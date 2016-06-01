@@ -25,6 +25,10 @@ typedef NS_ENUM(NSInteger, MeretzTaskType)
 	MeretzTaskTypeVendorUserProfile,
 };
 
+/* ---------- macros */
+
+#define STRINGIFY(x)						(@#x)
+
 /* ---------- interfaces */
 
 // MeretzTask internals (stored in a dictionary)
@@ -43,9 +47,9 @@ typedef NS_ENUM(NSInteger, MeretzTaskType)
 	- (MeretzResult *) getResult;
 
 	- (MeretzVendorUserConnectResult *) getVendorUserConnectResult;
-	- (MeretzVendorUserDisconnectResult *) getVendorUserDisconnectResult;
+	- (MeretzResult *) getVendorUserDisconnectResult;
 	- (MeretzVendorConsumeResult *) getVendorConsumeResult;
-	- (MeretzVendorUsePointsResult *) getVendorUserPointsResult;
+	- (MeretzResult *) getVendorUserPointsResult;
 	- (MeretzVendorUserProfileResult *) getVendorUserProfileResult;
 @end
 

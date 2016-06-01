@@ -14,15 +14,39 @@
 
 @implementation GameViewController
 
-Meretz *meretz= nil;
+Meretz *gMeretz= nil;
 
 - (void)viewDidLoad
 {
     [super viewDidLoad];
 	
+	// initialize Meretz lib
+	NSString *storedUserAccessToken= nil;
 	NSLog(@"Initializing Meretz w/ vendor access token %@", MERETZ_SAMPLE_VENDOR_ACCESS_TOKEN);
-	meretz= [[Meretz alloc] initWithVendorToken:MERETZ_SAMPLE_VENDOR_ACCESS_TOKEN];
-	NSAssert(nil != meretz, @"Failed to initialize MeretzLib!");
+	gMeretz= [[Meretz alloc] initWithTokens:MERETZ_SAMPLE_VENDOR_ACCESS_TOKEN emptyOrSavedValue:storedUserAccessToken];
+	NSAssert(nil != gMeretz, @"Failed to initialize MeretzLib!");
+	
+	if (TRUE)
+	{
+		// point Meretz at a custom dev server
+		[gMeretz setMeretzServerHostName:@"127.0.0.1"];
+		[gMeretz setMeretzServerPort:8080];
+		[gMeretz setMeretzServerProtocol: @"http"];
+		[gMeretz setMeretzServerAPIPath:@""];
+		NSLog(@"Meretz server set to: %@", [gMeretz getMeretzServerString]);
+	}
+	
+	if (TRUE)
+	{
+		// initiate a user connection task
+		NSString *userConnectionCode= @"ABC123";
+		
+		MeretzTaskId connectUserTaskId= [gMeretz vendorUserConnect:userConnectionCode];
+		if (MERETZ_TASK_ID_INVALID != connectUserTaskId)
+		{
+			NSLog(@"connectUserTask started: %X", connectUserTaskId);
+		}
+	}
 
     // create a new scene
     SCNScene *scene = [SCNScene sceneNamed:@"art.scnassets/ship.scn"];
