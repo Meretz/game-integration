@@ -25,15 +25,32 @@ typedef NS_ENUM(NSInteger, MeretzTaskType)
 	MeretzTaskTypeVendorUserProfile,
 };
 
+typedef NS_ENUM(NSInteger, HTTPMethod)
+{
+	GET,
+	HEAD,
+	POST,
+	PUT,
+	DELETE,
+	TRACE,
+	OPTIONS,
+	CONNECT,
+	PATCH,
+};
+
 /* ---------- macros */
 
 #define STRINGIFY(x)						(@#x)
+
+/* ---------- globals */
+
+extern Meretz *gMeretzSingleton;
 
 /* ---------- interfaces */
 
 // MeretzTask internals (stored in a dictionary)
 @interface MeretzTask : NSObject
-	- (instancetype)initVendorUserConnect: (NSString *) userConnectionCode;
+	- (instancetype)initVendorUserConnect: (NSString *) userConnectionCode vendorUserToken: (NSString *) vendorTokenForUser;
 	- (instancetype)initVendorUserDisconnect;
 	- (instancetype)initVendorConsume: (NSDate *) startDate optional: (NSDate *) endDate;
 	- (instancetype)initVendorUsePoints: (NSInteger) pointQuantity;
@@ -52,5 +69,9 @@ typedef NS_ENUM(NSInteger, MeretzTaskType)
 	- (MeretzResult *) getVendorUserPointsResult;
 	- (MeretzVendorUserProfileResult *) getVendorUserProfileResult;
 @end
+
+/* ---------- functions */
+
+NSString *HTTPMethodToString(HTTPMethod method);
 
 #endif //__MERETZ_INTERNAL_H__

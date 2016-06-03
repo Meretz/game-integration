@@ -330,6 +330,7 @@
 				F89552A51CFDE75600B59E80 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

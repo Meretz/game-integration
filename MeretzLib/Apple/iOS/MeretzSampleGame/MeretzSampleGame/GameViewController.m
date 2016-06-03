@@ -30,7 +30,7 @@ Meretz *gMeretz= nil;
 	{
 		// point Meretz at a custom dev server
 		[gMeretz setMeretzServerHostName:@"127.0.0.1"];
-		[gMeretz setMeretzServerPort:8080];
+		[gMeretz setMeretzServerPort:8000];
 		[gMeretz setMeretzServerProtocol: @"http"];
 		[gMeretz setMeretzServerAPIPath:@""];
 		NSLog(@"Meretz server set to: %@", [gMeretz getMeretzServerString]);
@@ -40,8 +40,9 @@ Meretz *gMeretz= nil;
 	{
 		// initiate a user connection task
 		NSString *userConnectionCode= @"ABC123";
+		NSString *vendorUserIdentifier= @"local_iOS_user";
 		
-		MeretzTaskId connectUserTaskId= [gMeretz vendorUserConnect:userConnectionCode];
+		MeretzTaskId connectUserTaskId= [gMeretz vendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier];
 		if (MERETZ_TASK_ID_INVALID != connectUserTaskId)
 		{
 			NSLog(@"connectUserTask started: %X", connectUserTaskId);

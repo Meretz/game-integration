@@ -26,10 +26,17 @@ const unsigned short kDefaultHTTPSPort= 443;
 #define DEFAULT_MERETZ_SERVER_PORT						kDefaultHTTPSPort
 #define DEFAULT_MERETZ_SERVER_API_PATH					@"/api"
 
+/* ---------- globals */
+
+Meretz *gMeretzSingleton= nil;
+
 /* ---------- internal interface */
 
 @interface Meretz()
 
+	- (BOOL) initialize;
+
+	// Meretz task management
 	- (MeretzTaskId) addTask: (MeretzTask *) newTask;
 	- (MeretzTask *) getTask: (MeretzTaskId) taskId;
 
@@ -37,9 +44,23 @@ const unsigned short kDefaultHTTPSPort= 443;
 
 /* ---------- implementation */
 
+@implementation MeretzResult
+@end
+
+@implementation MeretzVendorUserConnectResult
+@end
+
+@implementation MeretzVendorConsumeResult
+@end
+
+@implementation MeretzVendorUserProfileResult
+@end
+
 @implementation Meretz
 
 	/* ---------- globals */
+
+
 
 	NSString *gMeretzServerProtocol= nil;
 	NSString *gMeretzServerHostName= nil;
@@ -63,6 +84,8 @@ const unsigned short kDefaultHTTPSPort= 443;
 	// previously connected a game user
 	- (instancetype)initWithTokens: (NSString *) vendorSecretToken emptyOrSavedValue: (NSString *) userAccessToken;
 	{
+		NSAssert(nil == gMeretzSingleton, @"Meretz API has already been initialized!");
+		
 		if (0 < [vendorSecretToken length])
 		{
 			gVendorAccessToken= vendorSecretToken;
@@ -74,19 +97,22 @@ const unsigned short kDefaultHTTPSPort= 443;
 			
 			if (nil != self)
 			{
-				gMeretzServerProtocol= DEFAULT_MERETZ_SERVER_PROTOCOL;
-				gMeretzServerHostName= DEFAULT_MERETZ_SERVER_HOST_NAME;
-				gMeretzServerPort= [NSNumber numberWithUnsignedShort:DEFAULT_MERETZ_SERVER_PORT];
-				gMeretzServerApiPath= DEFAULT_MERETZ_SERVER_API_PATH;
-				
-				gTaskDictionary= [NSMutableDictionary dictionary];
-				
-				NSLog(@"Meretz v.%X initialized with vendor access token '%@'", MERETZ_VERSION, gVendorAccessToken);
-				if (0 < [userAccessToken length])
+				if ([self initialize])
 				{
-					[self setUserAccessToken: userAccessToken];
+					NSLog(@"Meretz v.%X initialized with vendor access token '%@'", MERETZ_VERSION, gVendorAccessToken);
+					if (0 < [userAccessToken length])
+					{
+						[self setUserAccessToken: userAccessToken];
+					}
+					
+					gMeretzSingleton= self;
+					
+					NSLog(@"Meretz REST API server: %@", [self getMeretzServerString]);
 				}
-				NSLog(@"Meretz REST API server: %@", [self getMeretzServerString]);
+				else
+				{
+					return nil;
+				}
 			}
 		}
 		else
@@ -195,11 +221,11 @@ const unsigned short kDefaultHTTPSPort= 443;
 	}
 
 	// User connection (link a game user to a Meretz user)
-	- (MeretzTaskId) vendorUserConnect: (NSString *) userConnectionCode
+	- (MeretzTaskId) vendorUserConnect: (NSString *) userConnectionCode vendorUserToken: (NSString *) vendorUserIdentifier
 	{
 		NSAssert(0 < [userConnectionCode length], @"VendorUserConnect requires a valid user connection code!");
 		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
-		MeretzTask *task= [[MeretzTask alloc] initVendorUserConnect: userConnectionCode];
+		MeretzTask *task= [[MeretzTask alloc] initVendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier];
 		
 		if (nil != task)
 		{
@@ -260,6 +286,27 @@ const unsigned short kDefaultHTTPSPort= 443;
 
 
 	/* ---------- private methods */
+
+	- (BOOL) initialize
+	{
+		BOOL success= FALSE;
+		
+		gMeretzServerProtocol= DEFAULT_MERETZ_SERVER_PROTOCOL;
+		gMeretzServerHostName= DEFAULT_MERETZ_SERVER_HOST_NAME;
+		gMeretzServerPort= [NSNumber numberWithUnsignedShort:DEFAULT_MERETZ_SERVER_PORT];
+		gMeretzServerApiPath= DEFAULT_MERETZ_SERVER_API_PATH;
+		
+		gTaskDictionary= [NSMutableDictionary dictionary];
+		
+		if (nil != gTaskDictionary)
+		{
+			success= TRUE;
+		}
+		
+		return success;
+	}
+
+	// Meretz task management
 
 	- (MeretzTaskId) addTask: (MeretzTask *) newTask
 	{
