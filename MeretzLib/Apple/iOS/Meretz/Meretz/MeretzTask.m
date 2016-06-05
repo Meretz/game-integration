@@ -59,10 +59,10 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 #define TASK_INPUT_KEY_VENDOR_USER_CONNECTION_CODE			@"connection_code"
 #define TASK_INPUT_KEY_VENDOR_USER_VENDOR_TOKEN				@"vendor_token"
 
-#define TASK_INPUT_KEY_VENDOR_CONSUME_START_DATE			@"VENDOR_CONSUME_START_DATE"
-#define TASK_INPUT_KEY_VENDOR_CONSUME_END_DATE				@"VENDOR_CONSUME_END_DATE"
+#define TASK_INPUT_KEY_VENDOR_CONSUME_START_DATE			@"start_time"
+#define TASK_INPUT_KEY_VENDOR_CONSUME_END_DATE				@"end_time"
 
-#define TASK_INPUT_KEY_VENDOR_USE_POINT_QUANTITY			@"VENDOR_USE_POINTS_QUANTITY"
+#define TASK_INPUT_KEY_VENDOR_USE_POINT_QUANTITY			@"meretz_points"
 
 /* ---------- internal interface */
 
@@ -79,34 +79,23 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		apiData: (NSDictionary *) data
 		completionHandler:(void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler;
 
+	- (void) taskComplete: (NSData *) data
+		httpResponse: (NSURLResponse *) response
+		responseError: (NSError *) error;
+
 	- (BOOL) beginWorkVendorUserConnect;
 	- (BOOL) beginWorkVendorUserDisconnect;
 	- (BOOL) beginWorkVendorConsume;
 	- (BOOL) beginWorkVendorUsePoints;
 	- (BOOL) beginWorkVendorUserProfile;
 
+	- (NSString *) iso8601DateTimeString: (NSDate *) date;
+
 @end
 
 /* ---------- implementation */
 
 @implementation MeretzTask
-
-
-	/* ---------- private members */
-	{
-		MeretzTaskStatus m_status;
-		MeretzTaskType m_type;
-		
-		NSURLSession *m_NSURLSession;
-		NSURLSessionDataTask *m_NSURLSessionDataTask;
-		NSMutableDictionary *m_inputs;
-
-		MeretzVendorUserConnectResult *m_vendorUserConnectResult;
-		MeretzResult *m_vendorUserDisconnectResult;
-		MeretzVendorConsumeResult *m_vendorConsumeResult;
-		MeretzResult *m_vendorUsePointsResult;
-		MeretzVendorUserProfileResult *m_vendorUserProfileResult;
-	}
 
 	/* ---------- public methods */
 
@@ -120,19 +109,14 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		self= [super init];
 		if (nil != self)
 		{
-			m_status= MeretzTaskStatusInvalid;
-			m_type= MeretzTaskTypeInvalid;
+			[self setTaskStatus:MeretzTaskStatusInvalid];
+			[self setTaskType:MeretzTaskTypeInvalid];
 			
-			m_NSURLSession= nil;
-			m_NSURLSessionDataTask= nil;
+			[self setSession:nil];
+			[self setSessionDataTask:nil];
 			
-			m_inputs= [NSMutableDictionary dictionary];
-			
-			m_vendorUserConnectResult= nil;
-			m_vendorUserDisconnectResult= nil;
-			m_vendorConsumeResult= nil;
-			m_vendorUsePointsResult= nil;
-			m_vendorUserProfileResult= nil;
+			[self setTaskInput:[NSMutableDictionary dictionary]];
+			[self setTaskOutput:[NSMutableDictionary dictionary]];
 			
 			return self;
 		}
@@ -146,28 +130,21 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		self= [self init];
 		if (nil != self)
 		{
-			m_vendorUserConnectResult= [[MeretzVendorUserConnectResult alloc] init];
-			if (nil != m_vendorUserConnectResult)
-			{
-				m_type= MeretzTaskTypeVendorUserConnect;
-				m_inputs[TASK_INPUT_KEY_VENDOR_USER_CONNECTION_CODE]= userConnectionCode;
-				m_inputs[TASK_INPUT_KEY_VENDOR_USER_VENDOR_TOKEN]= vendorTokenForUser;
-			}
+			[self setTaskType:MeretzTaskTypeVendorUserConnect];
+			[self.TaskInput setObject:userConnectionCode forKey:TASK_INPUT_KEY_VENDOR_USER_CONNECTION_CODE];
+			[self.TaskInput setObject:vendorTokenForUser forKey:TASK_INPUT_KEY_VENDOR_USER_VENDOR_TOKEN];
 		}
 		
 		return self;
 	}
+
 	- (instancetype)initVendorUserDisconnect
 	{
 		self= [self init];
 		if (nil != self)
 		{
-			m_vendorUserDisconnectResult= [[MeretzResult alloc] init];
-			if (nil != m_vendorUserDisconnectResult)
-			{
-				m_type= MeretzTaskTypeVendorUserDisconnect;
-				// no inputs to task
-			}
+			[self setTaskType:MeretzTaskTypeVendorUserDisconnect];
+			// no inputs to task
 		}
 		
 		return self;
@@ -179,15 +156,11 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		self= [self init];
 		if (nil != self)
 		{
-			m_vendorConsumeResult= [[MeretzVendorConsumeResult alloc] init];
-			if (nil != m_vendorConsumeResult)
+			[self setTaskType:MeretzTaskTypeVendorConsume];
+			[self.TaskInput setObject:[self iso8601DateTimeString:startDate] forKey:TASK_INPUT_KEY_VENDOR_CONSUME_START_DATE];
+			if (nil != endDate)
 			{
-				m_type= MeretzTaskTypeVendorConsume;
-				m_inputs[TASK_INPUT_KEY_VENDOR_CONSUME_START_DATE]= startDate;
-				if (nil != endDate)
-				{
-					m_inputs[TASK_INPUT_KEY_VENDOR_CONSUME_END_DATE]= endDate;
-				}
+				[self.TaskInput setObject:[self iso8601DateTimeString:endDate] forKey:TASK_INPUT_KEY_VENDOR_CONSUME_END_DATE];
 			}
 		}
 		
@@ -200,12 +173,8 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		self= [self init];
 		if (nil != self)
 		{
-			m_vendorUsePointsResult= [[MeretzResult alloc] init];
-			if (nil != m_vendorUsePointsResult)
-			{
-				m_type= MeretzTaskTypeVendorUsePoints;
-				m_inputs[TASK_INPUT_KEY_VENDOR_USE_POINT_QUANTITY]= [NSNumber numberWithInteger:pointQuantity];
-			}
+			[self setTaskType:MeretzTaskTypeVendorUsePoints];
+			[self.TaskInput setObject:[NSNumber numberWithInteger:pointQuantity] forKey:TASK_INPUT_KEY_VENDOR_USE_POINT_QUANTITY];
 		}
 		
 		return self;
@@ -216,12 +185,8 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		self= [self init];
 		if (nil != self)
 		{
-			m_vendorUserProfileResult= [[MeretzVendorUserProfileResult alloc] init];
-			if (nil != m_vendorUserProfileResult)
-			{
-				m_type= MeretzTaskTypeVendorUserProfile;
-				// no inputs to task
-			}
+			[self setTaskType:MeretzTaskTypeVendorUserProfile];
+			// no inputs to task
 		}
 		
 		return self;
@@ -231,75 +196,22 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 	{
 		BOOL success;
 		
-		switch (m_type)
+		switch (self.TaskType)
 		{
 			case MeretzTaskTypeVendorUserConnect: success= [self beginWorkVendorUserConnect]; break;
 			case MeretzTaskTypeVendorUserDisconnect: success= [self beginWorkVendorUserDisconnect]; break;
 			case MeretzTaskTypeVendorConsume: success= [self beginWorkVendorConsume]; break;
 			case MeretzTaskTypeVendorUsePoints: success= [self beginWorkVendorUsePoints]; break;
 			case MeretzTaskTypeVendorUserProfile: success= [self beginWorkVendorUserProfile]; break;
-			default: NSAssert(FALSE, @"unhandled task type '%d'!", m_type); success= FALSE; break;
+			default: NSAssert(FALSE, @"unhandled task type '%d'!", self.TaskType); success= FALSE; break;
 		}
 		
 		return success;
 	}
 
-	- (MeretzTaskType) getTaskType
+	- (NSDictionary *) getResult
 	{
-		return m_type;
-	}
-
-	- (MeretzTaskStatus) getTaskStatus
-	{
-		return m_status;
-	}
-
-	- (void) setTaskStatus: (MeretzTaskStatus) status
-	{
-		m_status= status;
-		
-		return;
-	}
-
-	- (MeretzResult *) getResult
-	{
-		if (nil != m_vendorUserConnectResult) return m_vendorUserConnectResult;
-		if (nil != m_vendorUserDisconnectResult) return m_vendorUserDisconnectResult;
-		if (nil != m_vendorConsumeResult) return m_vendorConsumeResult;
-		if (nil != m_vendorUsePointsResult) return m_vendorUsePointsResult;
-		if (nil != m_vendorUserProfileResult) return m_vendorUserProfileResult;
-		NSAssert(false, @"MeretzTask not properly initialized!");
-		return nil;
-	}
-
-	- (MeretzVendorUserConnectResult *) getVendorUserConnectResult
-	{
-		NSAssert(nil != m_vendorUserConnectResult, @"VendorUserConnectResult task not properly initialized!");
-		return m_vendorUserConnectResult;
-	}
-
-	- (MeretzResult *) getVendorUserDisconnectResult
-	{
-		NSAssert(nil != m_vendorUserDisconnectResult, @"VendorUserDisconnect task not properly initialized!");
-		return m_vendorUserDisconnectResult;
-	}
-
-	- (MeretzVendorConsumeResult *) getVendorConsumeResult
-	{
-		NSAssert(nil != m_vendorConsumeResult, @"VendorUserConsume task not properly initialized!");
-		return m_vendorConsumeResult;
-	}
-
-	- (MeretzResult *) getVendorUserPointsResult
-	{
-		NSAssert(nil != m_vendorUsePointsResult, @"VendorUsePoints task not properly initialized!");
-		return m_vendorUsePointsResult;
-	}
-
-	- (MeretzVendorUserProfileResult *) getVendorUserProfileResult
-	{
-		NSAssert(nil != m_vendorUserProfileResult, @"VendorUserProfile task not properly initialized!");
-		return m_vendorUserProfileResult;
+		return [self.TaskOutput copy];
 	}
 
 	/* ---------- private methods */
@@ -308,7 +220,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 	{
 		NSString *result;
 		
-		switch (m_type)
+		switch (self.TaskType)
 		{
 			case MeretzTaskTypeInvalid: result= STRINGIFY(MeretzTaskTypeInvalid); break;
 			case MeretzTaskTypeVendorUserConnect: result= STRINGIFY(MeretzTaskTypeVendorUserConnect); break;
@@ -325,8 +237,8 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 	- (NSString *) buildEndpointURL: (NSString *) endpoint
 	{
 		NSAssert(0 < [endpoint length], @"invalid endpoint!");
-		NSAssert(nil != gMeretzSingleton, @"Meretz has not been initialized!");
-		NSString *meretzServerURL= [gMeretzSingleton getMeretzServerString];
+		NSAssert(nil != self.MeretzInstance, @"Meretz instance has not been assigned to active task!");
+		NSString *meretzServerURL= [self.MeretzInstance getMeretzServerString];
 		NSString *result= [NSString stringWithFormat:@"%@%@", meretzServerURL, endpoint];
 		
 		return result;
@@ -338,8 +250,8 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		apiData: (NSDictionary *) data
 		completionHandler: (void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler
 	{
-		NSAssert(nil == m_NSURLSession, @"task already has an active NSURLSession object!");
-		NSAssert(nil == m_NSURLSessionDataTask, @"task already has an active NSURLSessionDataTask object!");
+		NSAssert(nil == self.Session, @"task already has an active NSURLSession object!");
+		NSAssert(nil == self.SessionDataTask, @"task already has an active NSURLSessionDataTask object!");
 		NSAssert(0 < [url length], @"valid URL required!");
 		NSAssert(nil != completionHandler, @"valid completion handler required!");
 		BOOL success= FALSE;
@@ -355,9 +267,9 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 				[sessionConfiguration setHTTPAdditionalHeaders:headers];
 			}
 			
-			m_NSURLSession= [NSURLSession sessionWithConfiguration:sessionConfiguration];
+			[self setSession:[NSURLSession sessionWithConfiguration:sessionConfiguration]];
 			
-			if (nil != m_NSURLSession)
+			if (nil != self.Session)
 			{
 				NSMutableURLRequest *request= [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
 				
@@ -372,7 +284,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 						
 						if (nil != jsonSerializationError)
 						{
-							NSLog(@"JSON serialization error: %@", jsonSerializationError);
+							NSLog(@"Meretz: JSON serialization error: %@", jsonSerializationError);
 						}
 						
 						if (nil != requestData)
@@ -382,52 +294,100 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 						}
 						else
 						{
-							NSLog(@"failed to JSON serialize request data!");
+							NSLog(@"Meretz: failed to JSON serialize request data!");
 							request= nil;
 						}
 					}
 					
 					if (nil != request)
 					{
-						NSLog(@"launching request to %@; headers= %@, data= %@", url, headers, data);
-						m_NSURLSessionDataTask= [m_NSURLSession dataTaskWithRequest:request completionHandler:completionHandler];
-						if (nil != m_NSURLSessionDataTask)
+						NSLog(@"Meretz: launching request to %@; headers= %@, data= %@", url, headers, data);
+						[self setSessionDataTask:[self.Session dataTaskWithRequest:request completionHandler:completionHandler]];
+						if (nil != self.SessionDataTask)
 						{
 							// start it up
-							[ m_NSURLSessionDataTask resume];
+							[self.SessionDataTask resume];
 							success= TRUE;
 						}
 						else
 						{
-							NSLog(@"failed to create NSURLSessionTask for task %@", self);
+							NSLog(@"Meretz: failed to create NSURLSessionTask for task %@", self);
 						}
 					}
 				}
 				else
 				{
-					NSLog(@"failed to create NSMutableURLRequest!");
+					NSLog(@"Meretz: failed to create NSMutableURLRequest!");
 				}
 			}
 			else
 			{
-				NSLog(@"failed to create NSURLSession for task %@", self);
+				NSLog(@"Meretz: failed to create NSURLSession for task %@", self);
 			}
 		}
 		else
 		{
-			NSLog(@"failed to create session configuration object!");
+			NSLog(@"Meretz: failed to create session configuration object!");
 		}
 		
-		NSLog(@"task %@ launch %@", self, (success ? @"SUCCEEDED" : @"FAILED"));
+		NSLog(@"Meretz: task %@ launch %@", self, (success ? @"SUCCEEDED" : @"FAILED"));
 		
 		return success;
 	}
 
+	- (void) taskComplete: (NSData *) data
+		httpResponse: (NSURLResponse *) response
+		responseError: (NSError *) error
+	{
+		NSString *taskTypeString= [self getTypeString];
+		
+		if (nil == error)
+		{
+			if ([response isKindOfClass:[NSHTTPURLResponse class]])
+			{
+				NSInteger statusCode= [(NSHTTPURLResponse *)response statusCode];
+
+				NSLog(@"Meretz: %@ returned HTTP status code: %d", taskTypeString, statusCode);
+				// NOTE: Meretz APIs will try to return result data even for failure status codes
+			}
+			
+			// try to retrieve JSON results
+			NSError *jsonDeserializeError= nil;
+			NSDictionary *jsonDict= (nil != data) ? [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonDeserializeError] : nil;
+			
+			if (nil != jsonDeserializeError)
+			{
+				NSLog(@"Meretz: %@ error deserializing JSON response: %@", taskTypeString, jsonDeserializeError);
+			}
+			else if (nil != jsonDict)
+			{
+				NSLog(@"Meretz: %@ returned JSON: %@", taskTypeString, jsonDict);
+				self.TaskOutput= [jsonDict copy];
+			}
+			else
+			{
+				NSLog(@"Meretz: %@ JSON response was empty", taskTypeString);
+			}
+		}
+		else
+		{
+			NSLog(@"Meretz: %@ experienced an error: %@", taskTypeString, error);
+		}
+		
+		self.TaskStatus= MeretzTaskStatusComplete;
+		[self setSession:nil];
+		[self setSessionDataTask:nil];
+		
+		NSLog(@"Meretz: %@ complete", taskTypeString);
+		
+		return;
+	}
+
 	- (BOOL) beginWorkVendorUserConnect
 	{
-		NSAssert(0 < [[m_inputs objectForKey:TASK_INPUT_KEY_VENDOR_USER_CONNECTION_CODE] length],
+		NSAssert(0 < [[self.TaskInput objectForKey:TASK_INPUT_KEY_VENDOR_USER_CONNECTION_CODE] length],
 			@"VendorUserConnect requires a valid user connection code!");
-		NSAssert(0 < [[m_inputs objectForKey:TASK_INPUT_KEY_VENDOR_USER_VENDOR_TOKEN] length],
+		NSAssert(0 < [[self.TaskInput objectForKey:TASK_INPUT_KEY_VENDOR_USER_VENDOR_TOKEN] length],
 			@"VendorUserConnect requires a valid user identification token!");
 		NSDictionary *headers= @{
 			HTTP_HEADER_KVP_ACCEPT_JSON,
@@ -437,13 +397,11 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		NSString *url= [self buildEndpointURL:MERETZ_API_ENDPOINT_VENDOR_CONNECT_USER];
 		BOOL success= [self launchSessionTask: url
 			customHeaders: headers
-			httpMethod: POST
-			apiData: m_inputs
+			httpMethod: HTTPMethodPOST
+			apiData: self.TaskInput
 			completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error)
 			{
-				NSDictionary *jsonDict= (nil != data) ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
-				NSLog(@"VendorUserConnect returned NSURLResponse: %@, NSError: %@, JSON: %@",
-					response, error, jsonDict);
+				[self taskComplete:data httpResponse:response responseError:error];
 			}];
 		
 		return success;
@@ -451,41 +409,140 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 
 	- (BOOL) beginWorkVendorUserDisconnect
 	{
-		//###stefan $TODO $IMPLEMENT
+		NSString *userAccessToken= [self.MeretzInstance getMeretzUserAccessToken];
 		BOOL success= FALSE;
+		
+		if (0 < [userAccessToken length])
+		{
+			NSDictionary *headers= @{
+				HTTP_HEADER_KVP_ACCEPT_JSON,
+				HTTP_HEADER_KVP_CONTENT_TYPE_JSON,
+				HTTP_HEADER_KVP_AJAX_REQUEST,
+				HTTP_HEADER_KEY_MERETZ_ACCESS : userAccessToken
+			};
+			NSString *url= [self buildEndpointURL:MERETZ_API_ENDPOINT_VENDOR_DISCONNECT_USER];
+			
+			success= [self launchSessionTask: url
+				customHeaders: headers
+				httpMethod: HTTPMethodPOST
+				apiData: self.TaskInput
+				completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error)
+				{
+					[self taskComplete:data httpResponse:response responseError:error];
+				}];
+		}
+		else
+		{
+			NSLog(@"Meretz: unable to initiate VendorUserDisconnect - no user access token has been set!");
+		}
 		
 		return success;
 	}
 
 	- (BOOL) beginWorkVendorConsume
 	{
-		NSDate *startDate= [m_inputs objectForKey:TASK_INPUT_KEY_VENDOR_CONSUME_START_DATE];
-		NSDate *endDate= [m_inputs objectForKey:TASK_INPUT_KEY_VENDOR_CONSUME_END_DATE];
-		NSAssert(nil != startDate, @"VendorConsume requires a valid start date!");
-		//###stefan $TODO $IMPLEMENT
+		NSString *userAccessToken= [self.MeretzInstance getMeretzUserAccessToken];
 		BOOL success= FALSE;
+		
+		if (0 < [userAccessToken length])
+		{
+			NSDictionary *headers= @{
+				HTTP_HEADER_KVP_ACCEPT_JSON,
+				HTTP_HEADER_KVP_CONTENT_TYPE_JSON,
+				HTTP_HEADER_KVP_AJAX_REQUEST,
+				HTTP_HEADER_KEY_MERETZ_ACCESS : userAccessToken
+			};
+			NSString *url= [self buildEndpointURL:MERETZ_API_ENDPOINT_VENDOR_CONSUME];
+			
+			success= [self launchSessionTask: url
+				customHeaders: headers
+				httpMethod: HTTPMethodPOST
+				apiData: self.TaskInput
+				completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error)
+				{
+					[self taskComplete:data httpResponse:response responseError:error];
+				}];
+		}
+		else
+		{
+			NSLog(@"Meretz: unable to initiate VendorConsume - no user access token has been set!");
+		}
 		
 		return success;
 	}
 
 	- (BOOL) beginWorkVendorUsePoints
 	{
-		NSNumber *pointsNumber= [m_inputs objectForKey:TASK_INPUT_KEY_VENDOR_USE_POINT_QUANTITY];
-		NSAssert(nil != pointsNumber, @"VendorUsePoints requires a valid point value!");
-		NSUInteger pointValue= [pointsNumber unsignedIntegerValue];
-		NSAssert(0 < pointValue, @"VendorUsePoints requires a positive point value!");
-		//###stefan $TODO $IMPLEMENT
+		NSString *userAccessToken= [self.MeretzInstance getMeretzUserAccessToken];
 		BOOL success= FALSE;
+		
+		if (0 < [userAccessToken length])
+		{
+			NSDictionary *headers= @{
+				HTTP_HEADER_KVP_ACCEPT_JSON,
+				HTTP_HEADER_KVP_CONTENT_TYPE_JSON,
+				HTTP_HEADER_KVP_AJAX_REQUEST,
+				HTTP_HEADER_KEY_MERETZ_ACCESS : userAccessToken
+			};
+			NSString *url= [self buildEndpointURL:MERETZ_API_ENDPOINT_VENDOR_USE_POINTS];
+			
+			success= [self launchSessionTask: url
+				customHeaders: headers
+				httpMethod: HTTPMethodPOST
+				apiData: self.TaskInput
+				completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error)
+				{
+					[self taskComplete:data httpResponse:response responseError:error];
+				}];
+		}
+		else
+		{
+			NSLog(@"Meretz: unable to initiate VendorUsePoints - no user access token has been set!");
+		}
 		
 		return success;
 	}
 
 	- (BOOL) beginWorkVendorUserProfile
 	{
-		//###stefan $TODO $IMPLEMENT
+		NSString *userAccessToken= [self.MeretzInstance getMeretzUserAccessToken];
 		BOOL success= FALSE;
 		
+		if (0 < [userAccessToken length])
+		{
+			NSDictionary *headers= @{
+				HTTP_HEADER_KVP_ACCEPT_JSON,
+				HTTP_HEADER_KVP_CONTENT_TYPE_JSON,
+				HTTP_HEADER_KVP_AJAX_REQUEST,
+				HTTP_HEADER_KEY_MERETZ_ACCESS : userAccessToken
+			};
+			NSString *url= [self buildEndpointURL:MERETZ_API_ENDPOINT_VENDOR_USER_PROFILE];
+			
+			success= [self launchSessionTask: url
+				customHeaders: headers
+				httpMethod: HTTPMethodPOST
+				apiData: self.TaskInput
+				completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error)
+				{
+					[self taskComplete:data httpResponse:response responseError:error];
+				}];
+		}
+		else
+		{
+			NSLog(@"Meretz: unable to initiate VendorUserProfile - no user access token has been set!");
+		}
+		
 		return success;
+	}
+
+	- (NSString *) iso8601DateTimeString: (NSDate *) date
+	{
+		NSDateFormatter *dateFormatter= [[NSDateFormatter alloc] init];
+		[dateFormatter setTimeZone:[NSTimeZone timeZoneWithName:@"GMT"]];
+		[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss"];
+		NSString *iso8601String= [dateFormatter stringFromDate:date];
+		
+		return iso8601String;
 	}
 
 @end
@@ -499,17 +556,17 @@ NSString *HTTPMethodToString(
 	
 	switch (method)
 	{
-		case GET: result= @"GET"; break;
-		case HEAD: result= @"HEAD"; break;
-		case POST: result= @"POST"; break;
-		case PUT: result= @"PUT"; break;
-		case DELETE: result= @"DELETE"; break;
-		case TRACE: result= @"TRACE"; break;
-		case OPTIONS: result= @"OPTIONS"; break;
-		case CONNECT: result= @"CONNECT"; break;
-		case PATCH: result= @"PATCH"; break;
+		case HTTPMethodGET: result= @"GET"; break;
+		case HTTPMethodHEAD: result= @"HEAD"; break;
+		case HTTPMethodPOST: result= @"POST"; break;
+		case HTTPMethodPUT: result= @"PUT"; break;
+		case HTTPMethodDELETE: result= @"DELETE"; break;
+		case HTTPMethodTRACE: result= @"TRACE"; break;
+		case HTTPMethodOPTIONS: result= @"OPTIONS"; break;
+		case HTTPMethodCONNECT: result= @"CONNECT"; break;
+		case HTTPMethodPATCH: result= @"PATCH"; break;
 		default:
-			NSLog(@"unknown HTTP method '%d'!", method);
+			NSLog(@"Meretz: unknown HTTP method '%d'!", method);
 			result= nil;
 			break;
 	}

@@ -5,6 +5,20 @@ Meretz.h
 Thursday May 26, 2016 11:11am Stefan S.
 Copyright (c) 2016 by E-Squared Labs - All rights reserved
 
+Typical usage:
+
+* Vendor registers with Meretz, obtains secret vendor token (one time only, per application if needed)
+* Vendor application initializes Meretz API w/ initWithTokens (optionally using a stored user access token)
+* Vendor runs asynchronous tasks against the Meretz API using the returned Meretz object
+  - tasks created using appropriate Meretz API, returns a taskId
+  - vendor code querries task periodically using taskId until it signals as complete
+  - once complete, vendor code can retrieve results object using approriate API and the taskId
+  - when finished with the task, call releaseTask
+
+Other notes:
+
+* library uses Objective-C ARC
+
 */
 
 /* ---------- frameworks */
@@ -20,7 +34,7 @@ typedef NSUInteger MeretzTaskId;
 // Meretz version
 // [major][minor]
 // 0x0000  0x0001
-#define MERETZ_VERSION				0x00000001
+#define MERETZ_VERSION									0x00000001
 
 typedef NS_ENUM(NSInteger, MeretzTaskStatus)
 {
@@ -29,7 +43,7 @@ typedef NS_ENUM(NSInteger, MeretzTaskStatus)
 	MeretzTaskStatusComplete // the queried task has completed and results can be gathered
 };
 
-extern const MeretzTaskId MERETZ_TASK_ID_INVALID;
+#define MERETZ_TASK_ID_INVALID							((unsigned)-1)
 
 /* ---------- interfaces */
 
@@ -37,46 +51,46 @@ extern const MeretzTaskId MERETZ_TASK_ID_INVALID;
 
 // Meretz ItemDefinition object
 @interface MeretzItemDefinition : NSObject
-	@property (nonatomic, retain) NSString *publicId;
-	@property (nonatomic, retain) NSString *name;
-	@property (nonatomic, retain) NSString *description;
+	@property (nonatomic, retain) NSString *PublicId;
+	@property (nonatomic, retain) NSString *Name;
+	@property (nonatomic, retain) NSString *Description;
 @end
 
 // Meretz Item object
 @interface MeretzItem : NSObject
-	@property (nonatomic, retain) NSString *publicId;
-	@property (nonatomic, retain) MeretzItemDefinition *itemDefinition;
-	@property (nonatomic, retain) NSNumber *price;
-	@property (nonatomic, retain) NSString *code;
-	@property (nonatomic, retain) NSDate *consumedTime;
+	@property (nonatomic, retain) NSString *PublicId;
+	@property (nonatomic, retain) MeretzItemDefinition *ItemDefinition;
+	@property (nonatomic, retain) NSNumber *Price;
+	@property (nonatomic, retain) NSString *Code;
+	@property (nonatomic, retain) NSDate *ConsumedTime;
 @end
 
 // Meretz API call results
 
 @interface MeretzResult : NSObject
 	// will be a BOOL, indicates successful execution of the requested operation
-	@property (nonatomic, retain) NSNumber* success;
+	@property (nonatomic, retain) NSNumber* Success;
 	// MeretzAPIResult code
-	@property (nonatomic, retain) NSString* errorCode;
+	@property (nonatomic, retain) NSString* ErrorCode;
 	// human-readable error details
-	@property (nonatomic, retain) NSString* errorMessage;
+	@property (nonatomic, retain) NSString* ErrorMessage;
 @end
 
 @interface MeretzVendorUserConnectResult : MeretzResult
 	// access-token GUID as a string
-	@property (nonatomic, retain) NSString* accessToken;
+	@property (nonatomic, retain) NSString* AccessToken;
 @end
 
 @interface MeretzVendorConsumeResult : MeretzResult
 	// array of MeretzItem objects consumed
-	@property (nonatomic, retain) NSArray* items;
+	@property (nonatomic, retain) NSArray* Items;
 @end
 
 @interface MeretzVendorUserProfileResult : MeretzResult
 	// # of points user can spend currently, will be an integer
-	@property (nonatomic, retain) NSNumber* usablePoints;
+	@property (nonatomic, retain) NSNumber* UsablePoints;
 	// total # of points the user has, will be an integer >= usablePoints
-	@property (nonatomic, retain) NSNumber* totalPoints;
+	@property (nonatomic, retain) NSNumber* TotalPoints;
 @end
 
 // Meretz API interface
@@ -96,19 +110,22 @@ extern const MeretzTaskId MERETZ_TASK_ID_INVALID;
 	// port= 443 (default for https)
 	// apiPath= "/api"
 
-	- (void) setMeretzServerHostName: (NSString *) hostName;
-	- (void) setMeretzServerPort: (NSUInteger) port;
-	- (void) setMeretzServerProtocol: (NSString *) protocol;
-	- (void) setMeretzServerAPIPath: (NSString *) apiPath;
+	- (void) setMeretzHostName: (NSString *) hostName;
+	- (void) setMeretzPort: (NSUInteger) port;
+	- (void) setMeretzProtocol: (NSString *) protocol;
+	- (void) setMeretzAPIPath: (NSString *) apiPath;
 
 	- (NSString *) getMeretzServerString;
 
 	// accessors for vendor/user- specific access token
-	- (NSString *) getUserAccessToken;
-	- (void) setUserAccessToken: (NSString *) accessToken;
+	- (NSString *) getMeretzUserAccessToken;
+	- (void) setMeretzUserAccessToken: (NSString *) accessToken;
 
 	// query the status of a Meretz asynchronous task
 	- (MeretzTaskStatus) getTaskStatus: (MeretzTaskId) taskId;
+
+	// call when finished with a task, to release its resources
+	- (void) releaseTask: (MeretzTaskId) taskId;
 
 	// User connection (link a game user to a Meretz user)
 	// userConnectionCode: code string which must be generated by the end
@@ -135,6 +152,7 @@ extern const MeretzTaskId MERETZ_TASK_ID_INVALID;
 	// Retrieving Meretz user information for the current user (as indicated via the active AccessToken)
 	- (MeretzTaskId) vendorUserProfile;
 	- (MeretzVendorUserProfileResult *) getVendorUserProfileResult: (MeretzTaskId) vendorUserProfileTask;
+
 
 @end
 

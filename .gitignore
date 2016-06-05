@@ -27,6 +27,12 @@ Temporary Items
 
 ### /OSX
 
+### XCode
+
+*.xcuserstate
+
+### /XCode
+
 ### MeretzLib bits
 
 MeretzLib/Apple/External
@@ -36,4 +42,3 @@ MeretzLib/Apple/iOS/MeretzLib/DerivedData/
 MeretzLib/Apple/iOS/MeretzLib/xcuserdata/
 
 ### /MeretzLib
-

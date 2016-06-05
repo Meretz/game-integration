@@ -11,8 +11,6 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 
 /* ---------- constants */
 
-const MeretzTaskId MERETZ_TASK_ID_INVALID = -1;
-
 // server configuration defaults
 
 const unsigned short kDefaultHTTPPort= 80;
@@ -26,55 +24,87 @@ const unsigned short kDefaultHTTPSPort= 443;
 #define DEFAULT_MERETZ_SERVER_PORT						kDefaultHTTPSPort
 #define DEFAULT_MERETZ_SERVER_API_PATH					@"/api"
 
-/* ---------- globals */
-
-Meretz *gMeretzSingleton= nil;
-
-/* ---------- internal interface */
+/* ---------- private interface */
 
 @interface Meretz()
+
+	/* ---------- private properties */
+
+	@property (nonatomic, retain) NSMutableDictionary *TaskDictionary;
+	@property (nonatomic, retain) NSString *MeretzServerProtocol;
+	@property (nonatomic, retain) NSString *MeretzServerHostName;
+	@property (nonatomic, retain) NSNumber *MeretzServerPort;
+	@property (nonatomic, retain) NSString *MeretzServerApiPath;
+
+	// the unique vendor access token give to you by Meretz
+	@property (nonatomic, retain) NSString *VendorAccessToken;
+
+	// a unique user access token retrieved initially via a vendorUserConnect call,
+	// then stored by your app and used for future interactions with the Meretz API
+	@property (nonatomic, retain) NSString *UserAccessToken;
+
+	/* ---------- private methods */
 
 	- (BOOL) initialize;
 
 	// Meretz task management
 	- (MeretzTaskId) addTask: (MeretzTask *) newTask;
+	- (NSNumber *) getTaskKey: (MeretzTaskId) taskId;
 	- (MeretzTask *) getTask: (MeretzTaskId) taskId;
 
 @end
 
 /* ---------- implementation */
 
+@implementation MeretzItemDefinition
+	- (NSString *)description
+	{
+		return [NSString stringWithFormat: @"MeretzItemDefinition: PublicId= '%@', Name= '%@', Description= '%@'",
+			self.PublicId, self.Name, self.Description];
+	}
+@end
+
+@implementation MeretzItem
+	- (NSString *)description
+	{
+		return [NSString stringWithFormat: @"MeretzItem: PublicId= '%@', ItemDefinition= [%@], Price= '%@', Code= '%@', ConsumedTime= '%@'",
+			self.PublicId, self.ItemDefinition, self.Price, self.Code, self.ConsumedTime];
+	}
+@end
+
 @implementation MeretzResult
+	- (NSString *)description
+	{
+		return [NSString stringWithFormat: @"MeretzResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@'",
+		self.Success, self.ErrorCode, self.ErrorMessage];
+	}
 @end
 
 @implementation MeretzVendorUserConnectResult
+	- (NSString *)description
+	{
+		return [NSString stringWithFormat: @"MeretzVendorUserConnectResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', AccessToken= '%@'",
+		self.Success, self.ErrorCode, self.ErrorMessage, self.AccessToken];
+	}
 @end
 
 @implementation MeretzVendorConsumeResult
+	- (NSString *)description
+	{
+		return [NSString stringWithFormat: @"MeretzVendorConsumeResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', Items= [%@]",
+		self.Success, self.ErrorCode, self.ErrorMessage, self.Items];
+	}
 @end
 
 @implementation MeretzVendorUserProfileResult
+	- (NSString *)description
+	{
+		return [NSString stringWithFormat: @"MeretzVendorUserProfileResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', UsablePoints= '%@', TotalPoints= '%@'",
+		self.Success, self.ErrorCode, self.ErrorMessage, self.UsablePoints, self.TotalPoints];
+	}
 @end
 
 @implementation Meretz
-
-	/* ---------- globals */
-
-
-
-	NSString *gMeretzServerProtocol= nil;
-	NSString *gMeretzServerHostName= nil;
-	NSNumber *gMeretzServerPort= nil;
-	NSString *gMeretzServerApiPath= nil;
-
-	// the unique vendor access token give to you by Meretz
-	NSString *gVendorAccessToken= nil;
-	// a unique user access token retrieved initially via a vendorUserConnect call,
-	// then stored by your app and used for future interactions with the Meretz API
-	NSString *gUserAccessToken= nil;
-
-	// the master Meretz task list
-	NSMutableDictionary *gTaskDictionary= nil;
 
 	/* ---------- public methods */
 
@@ -84,14 +114,10 @@ Meretz *gMeretzSingleton= nil;
 	// previously connected a game user
 	- (instancetype)initWithTokens: (NSString *) vendorSecretToken emptyOrSavedValue: (NSString *) userAccessToken;
 	{
-		NSAssert(nil == gMeretzSingleton, @"Meretz API has already been initialized!");
-		
 		if (0 < [vendorSecretToken length])
 		{
-			gVendorAccessToken= vendorSecretToken;
-			gUserAccessToken= @"";
-			
-			gTaskDictionary= nil;
+			[self setVendorAccessToken:vendorSecretToken];
+			[self setUserAccessToken:@""];
 			
 			self= [super init];
 			
@@ -99,15 +125,13 @@ Meretz *gMeretzSingleton= nil;
 			{
 				if ([self initialize])
 				{
-					NSLog(@"Meretz v.%X initialized with vendor access token '%@'", MERETZ_VERSION, gVendorAccessToken);
+					NSLog(@"Meretz: v.%X initialized with vendor access token '%@'", MERETZ_VERSION, self.VendorAccessToken);
 					if (0 < [userAccessToken length])
 					{
-						[self setUserAccessToken: userAccessToken];
+						[self setMeretzUserAccessToken:userAccessToken];
 					}
 					
-					gMeretzSingleton= self;
-					
-					NSLog(@"Meretz REST API server: %@", [self getMeretzServerString]);
+					NSLog(@"Meretz: REST API server: %@", [self getMeretzServerString]);
 				}
 				else
 				{
@@ -130,55 +154,55 @@ Meretz *gMeretzSingleton= nil;
 	// hostName= "www.meretz.com"
 	// port= 443 (default for https)
 	// apiPath= "/api"
-	- (void) setMeretzServerHostName: (NSString *) hostName
+	- (void) setMeretzHostName: (NSString *) hostName
 	{
 		NSAssert(0 < [hostName length], @"invalid Meretz server host name!");
-		gMeretzServerHostName= [hostName lowercaseString];
+		[self setMeretzServerHostName: [hostName lowercaseString]];
 		
 		return;
 	}
 
-	- (void) setMeretzServerPort: (NSUInteger) port
+	- (void) setMeretzPort: (NSUInteger) port
 	{
-		gMeretzServerPort= [NSNumber numberWithUnsignedShort:port];
+		[self setMeretzServerPort:[NSNumber numberWithUnsignedShort:port]];
 		
 		return;
 	}
 
-	- (void) setMeretzServerProtocol: (NSString *) protocol
+	- (void) setMeretzProtocol: (NSString *) protocol
 	{
 		NSAssert(0 < [protocol length], @"invalid Meretz server protocol string!");
 		NSAssert((NSOrderedSame == [protocol caseInsensitiveCompare:PROTOCOL_HTTP]) ||
 			(NSOrderedSame == [protocol caseInsensitiveCompare:PROTOCOL_HTTPS]),
 			@"Meretz server protocol must be either HTTP or HTTPS!");
-		gMeretzServerProtocol= [protocol lowercaseString];
+		[self setMeretzServerProtocol:[protocol lowercaseString]];
 		
 		return;
 	}
 
-	- (void) setMeretzServerAPIPath: (NSString *) apiPath
+	- (void) setMeretzAPIPath: (NSString *) apiPath
 	{
 		// empty string is allowed
 		if (0 == [apiPath length])
 		{
 			apiPath= @"";
 		}
-		gMeretzServerApiPath= apiPath;
+		[self setMeretzServerApiPath:apiPath];
 		
 		return;
 	}
 
 	- (NSString *) getMeretzServerString
 	{
-		unsigned short port= [gMeretzServerPort unsignedShortValue];
+		unsigned short port= [self.MeretzServerPort unsignedShortValue];
 		NSString *portPart= @"";
 		NSString *result;
 		
-		if ((NSOrderedSame == [gMeretzServerProtocol caseInsensitiveCompare:PROTOCOL_HTTP]) && (kDefaultHTTPPort == port))
+		if ((NSOrderedSame == [self.MeretzServerProtocol caseInsensitiveCompare:PROTOCOL_HTTP]) && (kDefaultHTTPPort == port))
 		{
 			// default port being used for HTTP, no need to be explicit
 		}
-		else if ((NSOrderedSame == [gMeretzServerProtocol caseInsensitiveCompare:PROTOCOL_HTTPS]) && (kDefaultHTTPSPort == port))
+		else if ((NSOrderedSame == [self.MeretzServerProtocol caseInsensitiveCompare:PROTOCOL_HTTPS]) && (kDefaultHTTPSPort == port))
 		{
 			// default port being used for HTTPS, no need to be explicit
 		}
@@ -187,26 +211,26 @@ Meretz *gMeretzSingleton= nil;
 			portPart= [NSString stringWithFormat:@":%d", port];
 		}
 		
-		result= [NSString stringWithFormat:@"%@://%@%@%@", gMeretzServerProtocol, gMeretzServerHostName, portPart, gMeretzServerApiPath];
+		result= [NSString stringWithFormat:@"%@://%@%@%@", self.MeretzServerProtocol, self.MeretzServerHostName, portPart, self.MeretzServerApiPath];
 		
 		return result;
 	}
 
 	// accessors for vendor/user- specific access token
-	- (NSString *) getUserAccessToken
+	- (NSString *) getMeretzUserAccessToken
 	{
-		return gUserAccessToken;
+		return self.UserAccessToken;
 	}
 
-	- (void) setUserAccessToken: (NSString *) accessToken
+	- (void) setMeretzUserAccessToken: (NSString *) accessToken
 	{
 		if (0 == [accessToken length])
 		{
 			accessToken= @"";
 		}
 		
-		NSLog(@"Meretz user access token set to: %@", accessToken);
-		gUserAccessToken= accessToken;
+		NSLog(@"Meretz: user access token set to: %@", accessToken);
+		[self setUserAccessToken:accessToken];
 		
 		return;
 	}
@@ -215,9 +239,30 @@ Meretz *gMeretzSingleton= nil;
 	- (MeretzTaskStatus) getTaskStatus: (MeretzTaskId) taskId
 	{
 		MeretzTask *task= [self getTask: taskId];
-		MeretzTaskStatus status= (nil != task) ? [task getTaskStatus] : MeretzTaskStatusInvalid;
+		MeretzTaskStatus status= (nil != task) ? task.TaskStatus : MeretzTaskStatusInvalid;
 		
 		return status;
+	}
+
+	// call when finished with a task, to release its resources
+	- (void) releaseTask: (MeretzTaskId) taskId
+	{
+		NSAssert(nil != self.TaskDictionary, @"Meretz not initialized!");
+		NSNumber *taskKey= [self getTaskKey:taskId];
+		MeretzTask *task= [self getTask:taskId];
+		
+		if (nil != task)
+		{
+			NSAssert(self == task.MeretzInstance, @"attempted to release a task which did not belong to this Meretz instance!");
+			task.MeretzInstance= nil;
+			[self.TaskDictionary removeObjectForKey:taskKey];
+		}
+		else
+		{
+			NSLog(@"Meretz: attempted to release an invalid task '%d'!", taskId);
+		}
+		
+		return;
 	}
 
 	// User connection (link a game user to a Meretz user)
@@ -237,51 +282,273 @@ Meretz *gMeretzSingleton= nil;
 
 	- (MeretzVendorUserConnectResult *) getVendorUserConnectResult: (MeretzTaskId) vendorUserConnectTask
 	{
-		return nil;
+		MeretzVendorUserConnectResult *result= nil;
+		MeretzTask *task= [self getTask: vendorUserConnectTask];
+		
+		if (nil != task)
+		{
+			NSDictionary *taskResults= [task getResult];
+			
+			if (nil != taskResults)
+			{
+				BOOL success= (nil != taskResults[TASK_OUTPUT_KEY_SUCCESS]) ? [taskResults[TASK_OUTPUT_KEY_SUCCESS] boolValue] : FALSE;
+				NSString *errorCode= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_CODE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_CODE] : @"";
+				NSString *errorMessage= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE] : @"";
+				NSString *accessToken= (nil != taskResults[TASK_OUTPUT_KEY_VENDOR_CONNECT_USER_ACCESS_TOKEN]) ? taskResults[TASK_OUTPUT_KEY_VENDOR_CONNECT_USER_ACCESS_TOKEN] : @"";
+				
+				result= [[MeretzVendorUserConnectResult alloc] init];
+				
+				if (nil != result)
+				{
+					[result setSuccess:[NSNumber numberWithBool:success]];
+					[result setErrorCode:errorCode];
+					[result setErrorMessage:errorMessage];
+					[result setAccessToken:accessToken];
+				}
+				else
+				{
+					NSLog(@"Meretz: failed to alloc MeretzVendorUserConnectResult object!");
+				}
+			}
+			else
+			{
+				NSLog(@"Meretz: VendorUserConnectResult missing taskResult dictionary!");
+			}
+		}
+		else
+		{
+			NSLog(@"Meretz: No VendorUserConnect task for id '%d'", vendorUserConnectTask);
+		}
+		
+		return result;
 	}
 
 	// User disconnection (for the current user as indicated via the active AccessToken)
 	- (MeretzTaskId) vendorUserDisconnect
 	{
-		return MERETZ_TASK_ID_INVALID;
+		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
+		MeretzTask *task= [[MeretzTask alloc] initVendorUserDisconnect];
+		
+		if (nil != task)
+		{
+			taskId= [self addTask: task];
+		}
+		
+		return taskId;
 	}
 
 	- (MeretzResult *) getVendorUserDisconnectResult: (MeretzTaskId) vendorUserDisconnectTask
 	{
-		return nil;
+		MeretzResult *result= nil;
+		MeretzTask *task= [self getTask: vendorUserDisconnectTask];
+		
+		if (nil != task)
+		{
+			NSDictionary *taskResults= [task getResult];
+			
+			if (nil != taskResults)
+			{
+				BOOL success= (nil != taskResults[TASK_OUTPUT_KEY_SUCCESS]) ? [taskResults[TASK_OUTPUT_KEY_SUCCESS] boolValue] : FALSE;
+				NSString *errorCode= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_CODE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_CODE] : @"";
+				NSString *errorMessage= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE] : @"";
+				
+				result= [[MeretzResult alloc] init];
+				
+				if (nil != result)
+				{
+					[result setSuccess:[NSNumber numberWithBool:success]];
+					[result setErrorCode:errorCode];
+					[result setErrorMessage:errorMessage];
+				}
+				else
+				{
+					NSLog(@"Meretz: failed to alloc MeretzResult object!");
+				}
+			}
+			else
+			{
+				NSLog(@"Meretz: VendorUserDisconnectResult missing taskResult dictionary!");
+			}
+		}
+		else
+		{
+			NSLog(@"Meretz: No VendorUserDisconnect task for id '%d'", vendorUserDisconnectTask);
+		}
+		
+		return result;
 	}
 
 	// Item consumption over a date range
 	- (MeretzTaskId) vendorConsume: (NSDate *) startDate optional: (NSDate *) endDate
 	{
-		return MERETZ_TASK_ID_INVALID;
+		NSAssert(nil != startDate, @"VendorConsume requires a valid startDate!");
+		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
+		MeretzTask *task= [[MeretzTask alloc] initVendorConsume:startDate optional:endDate];
+		
+		if (nil != task)
+		{
+			taskId= [self addTask: task];
+		}
+		
+		return taskId;
 	}
 
 	- (MeretzVendorConsumeResult *) getVendorConsumeResult: (MeretzTaskId) vendorConsumeTask
 	{
-		return nil;
+		MeretzVendorConsumeResult *result= nil;
+		MeretzTask *task= [self getTask: vendorConsumeTask];
+		
+		if (nil != task)
+		{
+			NSDictionary *taskResults= [task getResult];
+			
+			if (nil != taskResults)
+			{
+				BOOL success= (nil != taskResults[TASK_OUTPUT_KEY_SUCCESS]) ? [taskResults[TASK_OUTPUT_KEY_SUCCESS] boolValue] : FALSE;
+				NSString *errorCode= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_CODE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_CODE] : @"";
+				NSString *errorMessage= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE] : @"";
+				NSArray *items= (nil != taskResults[TASK_OUTPUT_KEY_VENDOR_CONSUME_ITEMS] ? taskResults[TASK_OUTPUT_KEY_VENDOR_CONSUME_ITEMS] : @[]);
+				
+				result= [[MeretzVendorConsumeResult alloc] init];
+				
+				if (nil != result)
+				{
+					[result setSuccess:[NSNumber numberWithBool:success]];
+					[result setErrorCode:errorCode];
+					[result setErrorMessage:errorMessage];
+					[result setItems:items];
+				}
+				else
+				{
+					NSLog(@"Meretz: failed to alloc MeretzVendorConsumeResult object!");
+				}
+			}
+			else
+			{
+				NSLog(@"Meretz: MeretzVendorConsumeResult missing taskResult dictionary!");
+			}
+		}
+		else
+		{
+			NSLog(@"Meretz: No MeretzVendorConsumeResult task for id '%d'", vendorConsumeTask);
+		}
+		
+		return result;
 	}
 
 	// Spending points on behalf of the current user (as indicated via the active AccessToken)
 	- (MeretzTaskId) vendorUsePoints: (NSInteger) pointQuantity
 	{
-		return MERETZ_TASK_ID_INVALID;
+		NSAssert(0 < pointQuantity, @"VendorUsePoints requires a point quantity > 0!");
+		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
+		MeretzTask *task= [[MeretzTask alloc] initVendorUsePoints:pointQuantity];
+		
+		if (nil != task)
+		{
+			taskId= [self addTask: task];
+		}
+		
+		return taskId;
 	}
 
 	- (MeretzResult *) getVendorUsePointsResult: (MeretzTaskId) vendorUsePointsTask
 	{
-		return nil;
+		MeretzResult *result= nil;
+		MeretzTask *task= [self getTask: vendorUsePointsTask];
+		
+		if (nil != task)
+		{
+			NSDictionary *taskResults= [task getResult];
+			
+			if (nil != taskResults)
+			{
+				BOOL success= (nil != taskResults[TASK_OUTPUT_KEY_SUCCESS]) ? [taskResults[TASK_OUTPUT_KEY_SUCCESS] boolValue] : FALSE;
+				NSString *errorCode= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_CODE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_CODE] : @"";
+				NSString *errorMessage= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE] : @"";
+				
+				result= [[MeretzResult alloc] init];
+				
+				if (nil != result)
+				{
+					[result setSuccess:[NSNumber numberWithBool:success]];
+					[result setErrorCode:errorCode];
+					[result setErrorMessage:errorMessage];
+				}
+				else
+				{
+					NSLog(@"Meretz: failed to alloc MeretzResult object!");
+				}
+			}
+			else
+			{
+				NSLog(@"Meretz: VendorUsePointsResult missing taskResult dictionary!");
+			}
+		}
+		else
+		{
+			NSLog(@"Meretz: No VendorUsePoints task for id '%d'", vendorUsePointsTask);
+		}
+		
+		return result;
 	}
 
 	// Retrieving Meretz user information for the current user (as indicated via the active AccessToken)
 	- (MeretzTaskId) vendorUserProfile
 	{
-		return MERETZ_TASK_ID_INVALID;
+		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
+		MeretzTask *task= [[MeretzTask alloc] initVendorUserProfile];
+		
+		if (nil != task)
+		{
+			taskId= [self addTask: task];
+		}
+		
+		return taskId;
 	}
 
 	- (MeretzVendorUserProfileResult *) getVendorUserProfileResult: (MeretzTaskId) vendorUserProfileTask
 	{
-		return nil;
+		MeretzVendorUserProfileResult *result= nil;
+		MeretzTask *task= [self getTask: vendorUserProfileTask];
+		
+		if (nil != task)
+		{
+			NSDictionary *taskResults= [task getResult];
+			
+			if (nil != taskResults)
+			{
+				BOOL success= (nil != taskResults[TASK_OUTPUT_KEY_SUCCESS]) ? [taskResults[TASK_OUTPUT_KEY_SUCCESS] boolValue] : FALSE;
+				NSString *errorCode= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_CODE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_CODE] : @"";
+				NSString *errorMessage= (nil != taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE]) ? taskResults[TASK_OUTPUT_KEY_ERROR_MESSAGE] : @"";
+				NSNumber *usablePoints= (nil != taskResults[TASK_OUTPUT_KEY_VENDOR_USER_PROFILE_USABLE_POINTS] ? taskResults[TASK_OUTPUT_KEY_VENDOR_USER_PROFILE_USABLE_POINTS] : [NSNumber numberWithInteger:0]);
+				NSNumber *totalPoints= (nil != taskResults[TASK_OUTPUT_KEY_VENDOR_USER_PROFILE_TOTAL_POINTS] ? taskResults[TASK_OUTPUT_KEY_VENDOR_USER_PROFILE_TOTAL_POINTS] : [NSNumber numberWithInteger:0]);
+				
+				result= [[MeretzVendorUserProfileResult alloc] init];
+				
+				if (nil != result)
+				{
+					[result setSuccess:[NSNumber numberWithBool:success]];
+					[result setErrorCode:errorCode];
+					[result setErrorMessage:errorMessage];
+					[result setUsablePoints:usablePoints];
+					[result setTotalPoints:totalPoints];
+				}
+				else
+				{
+					NSLog(@"Meretz: failed to alloc MeretzVendorUserProfileResult object!");
+				}
+			}
+			else
+			{
+				NSLog(@"Meretz: MeretzVendorUserProfileResult missing taskResult dictionary!");
+			}
+		}
+		else
+		{
+			NSLog(@"Meretz: No MeretzVendorUserProfileResult task for id '%d'", vendorUserProfileTask);
+		}
+		
+		return result;
 	}
 
 
@@ -291,14 +558,14 @@ Meretz *gMeretzSingleton= nil;
 	{
 		BOOL success= FALSE;
 		
-		gMeretzServerProtocol= DEFAULT_MERETZ_SERVER_PROTOCOL;
-		gMeretzServerHostName= DEFAULT_MERETZ_SERVER_HOST_NAME;
-		gMeretzServerPort= [NSNumber numberWithUnsignedShort:DEFAULT_MERETZ_SERVER_PORT];
-		gMeretzServerApiPath= DEFAULT_MERETZ_SERVER_API_PATH;
+		[self setMeretzServerProtocol:DEFAULT_MERETZ_SERVER_PROTOCOL];
+		[self setMeretzServerHostName:DEFAULT_MERETZ_SERVER_HOST_NAME];
+		[self setMeretzServerPort:[NSNumber numberWithUnsignedShort:DEFAULT_MERETZ_SERVER_PORT]];
+		[self setMeretzServerApiPath:DEFAULT_MERETZ_SERVER_API_PATH];
 		
-		gTaskDictionary= [NSMutableDictionary dictionary];
+		self.TaskDictionary= [NSMutableDictionary dictionary];
 		
-		if (nil != gTaskDictionary)
+		if (nil != self.TaskDictionary)
 		{
 			success= TRUE;
 		}
@@ -310,19 +577,23 @@ Meretz *gMeretzSingleton= nil;
 
 	- (MeretzTaskId) addTask: (MeretzTask *) newTask
 	{
-		NSAssert(nil != gTaskDictionary, @"task list uninitialized!");
+		NSAssert(nil != self.TaskDictionary, @"task list uninitialized!");
 		NSAssert(nil != newTask, @"cannot add nil task!");
-		NSAssert(MeretzTaskStatusInvalid == [newTask getTaskStatus], @"cannot add an already-started task!");
+		NSAssert(nil == newTask.MeretzInstance, @"attempting to add a task which belongs to an existing Meretz instance!");
+		NSAssert(MeretzTaskStatusInvalid == newTask.TaskStatus, @"cannot add an already-started task!");
 		NSNumber *taskKey= [NSNumber numberWithUnsignedInt:arc4random()];
 		NSAssert(nil != taskKey, @"failed to initialize taskKey!");
 		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
 		
 		// generate a new taskID
-		while (nil != [gTaskDictionary valueForKey:[taskKey stringValue]])
+		while (nil != [self.TaskDictionary valueForKey:[taskKey stringValue]])
 		{
 			taskKey= [NSNumber numberWithUnsignedInt:arc4random()];
 			NSAssert(nil != taskKey, @"failed to initialize taskKey!");
 		}
+		
+		// claim ownership of this task
+		newTask.MeretzInstance= self;
 		
 		// attempt to spin up the task
 		if ([newTask beginWork])
@@ -330,26 +601,34 @@ Meretz *gMeretzSingleton= nil;
 			// set status to initial value
 			[newTask setTaskStatus: MeretzTaskStatusInProgress];
 			// add to the master task list
-			gTaskDictionary[[taskKey stringValue]]= newTask;
+			self.TaskDictionary[[taskKey stringValue]]= newTask;
 			// return the new taskId
 			taskId= [taskKey unsignedIntegerValue];
-			NSLog(@"new task '%@' (%X) added", newTask, taskId);
+			NSLog(@"Meretz: new task '%@' (%X) added", newTask, taskId);
 		}
 		else
 		{
-			NSLog(@"beginWork() failed for '%@'", newTask);
+			NSLog(@"Meretz: beginWork() failed for '%@'", newTask);
 		}
 		
 		return taskId;
 	}
 
-	- (MeretzTask *) getTask: (MeretzTaskId) taskId
+	- (NSNumber *) getTaskKey: (MeretzTaskId) taskId
 	{
-		NSAssert(MERETZ_TASK_ID_INVALID != taskId, @"invalid MeretzTask!");
-		NSAssert(nil != gTaskDictionary, @"task list uninitialized!");
+		NSAssert(MERETZ_TASK_ID_INVALID != taskId, @"invalid taskId!");
 		NSNumber *taskKey= [NSNumber numberWithUnsignedInt:taskId];
 		NSAssert(nil != taskKey, @"failed to initialize taskKey!");
-		MeretzTask *result= gTaskDictionary[[taskKey stringValue]];
+		
+		return taskKey;
+	}
+
+	- (MeretzTask *) getTask: (MeretzTaskId) taskId
+	{
+		NSAssert(nil != self.TaskDictionary, @"task list uninitialized!");
+		NSNumber *taskKey= [self getTaskKey:taskId];
+		NSAssert(nil != taskKey, @"failed to initialize taskKey!");
+		MeretzTask *result= self.TaskDictionary[[taskKey stringValue]];
 		NSAssert(nil != result, @"invalid MeretzTaskId!");
 		
 		return result;

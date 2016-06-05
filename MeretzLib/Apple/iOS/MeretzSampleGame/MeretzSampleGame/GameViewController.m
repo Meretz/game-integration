@@ -15,6 +15,7 @@
 @implementation GameViewController
 
 Meretz *gMeretz= nil;
+MeretzTaskId gConnectUserTaskId= MERETZ_TASK_ID_INVALID;
 
 - (void)viewDidLoad
 {
@@ -29,10 +30,10 @@ Meretz *gMeretz= nil;
 	if (TRUE)
 	{
 		// point Meretz at a custom dev server
-		[gMeretz setMeretzServerHostName:@"127.0.0.1"];
-		[gMeretz setMeretzServerPort:8000];
-		[gMeretz setMeretzServerProtocol: @"http"];
-		[gMeretz setMeretzServerAPIPath:@""];
+		[gMeretz setMeretzHostName:@"127.0.0.1"];
+		[gMeretz setMeretzPort:8000];
+		[gMeretz setMeretzProtocol: @"http"];
+		[gMeretz setMeretzAPIPath:@""];
 		NSLog(@"Meretz server set to: %@", [gMeretz getMeretzServerString]);
 	}
 	
@@ -42,11 +43,7 @@ Meretz *gMeretz= nil;
 		NSString *userConnectionCode= @"ABC123";
 		NSString *vendorUserIdentifier= @"local_iOS_user";
 		
-		MeretzTaskId connectUserTaskId= [gMeretz vendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier];
-		if (MERETZ_TASK_ID_INVALID != connectUserTaskId)
-		{
-			NSLog(@"connectUserTask started: %X", connectUserTaskId);
-		}
+		gConnectUserTaskId= [gMeretz vendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier];
 	}
 
     // create a new scene
@@ -138,6 +135,26 @@ Meretz *gMeretz= nil;
         
         [SCNTransaction commit];
     }
+	
+	// Meretz sample code
+	if (MERETZ_TASK_ID_INVALID != gConnectUserTaskId)
+	{
+		MeretzTaskStatus taskStatus= [gMeretz getTaskStatus:gConnectUserTaskId];
+		
+		if (MeretzTaskStatusComplete == taskStatus)
+		{
+			MeretzVendorUserConnectResult *userConnectResults= [gMeretz getVendorUserConnectResult:gConnectUserTaskId];
+			
+			NSAssert(nil != userConnectResults, @"no results object returned for completed VendorUserConnect!");
+			NSLog(@"VendorUserConnect results: %@", userConnectResults);
+			[gMeretz releaseTask:gConnectUserTaskId];
+			gConnectUserTaskId= MERETZ_TASK_ID_INVALID;
+		}
+		else
+		{
+			NSLog(@"VendorUserConnect task still in progress...");
+		}
+	}
 }
 
 - (BOOL)shouldAutorotate
