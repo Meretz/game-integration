@@ -581,15 +581,20 @@ const unsigned short kDefaultHTTPSPort= 443;
 		NSAssert(nil != newTask, @"cannot add nil task!");
 		NSAssert(nil == newTask.MeretzInstance, @"attempting to add a task which belongs to an existing Meretz instance!");
 		NSAssert(MeretzTaskStatusInvalid == newTask.TaskStatus, @"cannot add an already-started task!");
-		NSNumber *taskKey= [NSNumber numberWithUnsignedInt:arc4random()];
-		NSAssert(nil != taskKey, @"failed to initialize taskKey!");
 		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
+		NSNumber *taskKey;
 		
 		// generate a new taskID
-		while (nil != [self.TaskDictionary valueForKey:[taskKey stringValue]])
+		for (taskKey= [NSNumber numberWithUnsignedInt:arc4random()]; TRUE; taskKey= [NSNumber numberWithUnsignedInt:arc4random()])
 		{
-			taskKey= [NSNumber numberWithUnsignedInt:arc4random()];
 			NSAssert(nil != taskKey, @"failed to initialize taskKey!");
+			if (MERETZ_TASK_ID_INVALID != [taskKey unsignedIntegerValue])
+			{
+				if (nil == [self.TaskDictionary valueForKey:[taskKey stringValue]])
+				{
+					break;
+				}
+			}
 		}
 		
 		// claim ownership of this task
