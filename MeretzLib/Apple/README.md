@@ -6,6 +6,3 @@ standalone 3rd-party applications.
 
 See the various platform-specific subdirectories for details on 
 implementation and usage.
-
-The External\ subdirectory houses external 3rd party code libraries
-used in the development of the MeretzLib framework for Apple platforms.
