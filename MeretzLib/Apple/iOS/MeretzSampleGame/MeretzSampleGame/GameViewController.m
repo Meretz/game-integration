@@ -16,13 +16,14 @@
 
 Meretz *gMeretz= nil;
 MeretzTaskId gConnectUserTaskId= MERETZ_TASK_ID_INVALID;
+MeretzTaskId gVendorConsumeTaskId= MERETZ_TASK_ID_INVALID;
 
 - (void)viewDidLoad
 {
     [super viewDidLoad];
 	
 	// initialize Meretz lib
-	NSString *storedUserAccessToken= nil;
+	NSString *storedUserAccessToken= @"sample-user-access-token";
 	NSLog(@"Initializing Meretz w/ vendor access token %@", MERETZ_SAMPLE_VENDOR_ACCESS_TOKEN);
 	gMeretz= [[Meretz alloc] initWithTokens:MERETZ_SAMPLE_VENDOR_ACCESS_TOKEN emptyOrSavedValue:storedUserAccessToken];
 	NSAssert(nil != gMeretz, @"Failed to initialize MeretzLib!");
@@ -44,6 +45,16 @@ MeretzTaskId gConnectUserTaskId= MERETZ_TASK_ID_INVALID;
 		NSString *vendorUserIdentifier= @"local_iOS_user";
 		
 		gConnectUserTaskId= [gMeretz vendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier];
+	}
+	
+	if (TRUE)
+	{
+		// initiate a vendor consume task
+		NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+		[dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss zzz"];
+		NSDate *startDate= [dateFormatter dateFromString: @"2016-06-15 00:00:00 GMT"];
+		NSDate *endDate= nil;
+		gVendorConsumeTaskId= [gMeretz vendorConsume:startDate optional:endDate];
 	}
 
     // create a new scene
@@ -153,6 +164,24 @@ MeretzTaskId gConnectUserTaskId= MERETZ_TASK_ID_INVALID;
 		else
 		{
 			NSLog(@"VendorUserConnect task still in progress...");
+		}
+	}
+	if (MERETZ_TASK_ID_INVALID != gVendorConsumeTaskId)
+	{
+		MeretzTaskStatus taskStatus= [gMeretz getTaskStatus:gVendorConsumeTaskId];
+		
+		if (MeretzTaskStatusComplete == taskStatus)
+		{
+			MeretzVendorConsumeResult *consumeResults= [gMeretz getVendorConsumeResult:gVendorConsumeTaskId];
+			
+			NSAssert(nil != consumeResults, @"no results object returned for completed VendorConsume!");
+			NSLog(@"VendorConsume results: %@", consumeResults);
+			[gMeretz releaseTask:gVendorConsumeTaskId];
+			gVendorConsumeTaskId= MERETZ_TASK_ID_INVALID;
+		}
+		else
+		{
+			NSLog(@"VendorConsume task still in progress...");
 		}
 	}
 }

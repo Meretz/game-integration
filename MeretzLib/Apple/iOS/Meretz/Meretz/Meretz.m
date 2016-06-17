@@ -91,7 +91,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 @implementation MeretzVendorConsumeResult
 	- (NSString *)description
 	{
-		return [NSString stringWithFormat: @"MeretzVendorConsumeResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', Items= [%@]",
+		return [NSString stringWithFormat: @"MeretzVendorConsumeResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', Items= %@",
 		self.Success, self.ErrorCode, self.ErrorMessage, self.Items];
 	}
 @end
@@ -413,10 +413,51 @@ const unsigned short kDefaultHTTPSPort= 443;
 				
 				if (nil != result)
 				{
+					NSMutableArray *itemArray= [[NSMutableArray alloc] init];
+					
+					NSDateFormatter *dateFormatter= [[NSDateFormatter alloc] init];
+			
+					[dateFormatter setTimeZone:[NSTimeZone timeZoneWithName:@"GMT"]];
+					[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZ"];
+					
+					for (int itemIndex= 0, itemCount= [items count]; itemIndex < itemCount; itemIndex+= 1)
+					{
+						NSObject *itemObject= items[itemIndex];
+						NSObject *itemDefinitionObject= [itemObject valueForKey:@"item_definition"];
+						NSString *itemDefPublicId= (nil != itemDefinitionObject) ? [itemDefinitionObject valueForKey:@"public_id"] : nil;
+						NSString *itemDefName= (nil != itemDefinitionObject) ? [itemDefinitionObject valueForKey:@"name"] : nil;
+						NSString *itemDefDescription= (nil != itemDefinitionObject) ? [itemDefinitionObject valueForKey:@"description"] : nil;
+						NSString *itemPublicId= [itemObject valueForKey:@"public_id"];
+						NSNumber *itemPrice= @([[itemObject valueForKey:@"price"] integerValue]);
+						NSString *itemCode= [itemObject valueForKey:@"code"];
+						id itemConsumedTimeString= [itemObject valueForKey:@"consumed_time"];
+						NSDate *itemConsumedTime= nil;
+						
+						if (itemConsumedTimeString != [NSNull null])
+						{
+							itemConsumedTime= [dateFormatter dateFromString:itemConsumedTimeString];
+						}
+						
+						MeretzItemDefinition *itemDefinition= [[MeretzItemDefinition alloc] init];
+						MeretzItem *item= [[MeretzItem alloc] init];
+						
+						[itemDefinition setPublicId:itemDefPublicId];
+						[itemDefinition setName:itemDefName];
+						[itemDefinition setDescription:itemDefDescription];
+						
+						[item setPublicId:itemPublicId];
+						[item setItemDefinition:itemDefinition];
+						[item setPrice:itemPrice];
+						[item setCode:itemCode];
+						[item setConsumedTime:itemConsumedTime];
+						
+						[itemArray addObject:item];
+					}
+					
 					[result setSuccess:[NSNumber numberWithBool:success]];
 					[result setErrorCode:errorCode];
 					[result setErrorMessage:errorMessage];
-					[result setItems:items];
+					[result setItems:itemArray];
 				}
 				else
 				{
