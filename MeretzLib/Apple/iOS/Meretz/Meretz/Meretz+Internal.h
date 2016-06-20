@@ -139,14 +139,14 @@ typedef NS_ENUM(NSInteger, HTTPStatus)
 // MeretzTask internals (stored in a dictionary)
 @interface MeretzTask : NSObject
 
-	@property Meretz *MeretzInstance;
-	@property MeretzTaskStatus TaskStatus;
-	@property MeretzTaskType TaskType;
+	@property (nonatomic, retain) Meretz *MeretzInstance;
+	@property (nonatomic) MeretzTaskStatus TaskStatus;
+	@property (nonatomic) MeretzTaskType TaskType;
 		
-	@property NSURLSession *Session;
-	@property NSURLSessionDataTask *SessionDataTask;
-	@property NSMutableDictionary *TaskInput;
-	@property NSMutableDictionary *TaskOutput;
+	@property (nonatomic, retain) NSURLSession *Session;
+	@property (nonatomic, retain) NSURLSessionDataTask *SessionDataTask;
+	@property (nonatomic, retain) NSMutableDictionary *TaskInput;
+	@property (nonatomic, retain) NSMutableDictionary *TaskOutput;
 
 	- (instancetype)initVendorUserConnect: (NSString *) userConnectionCode vendorUserToken: (NSString *) vendorTokenForUser;
 	- (instancetype)initVendorUserDisconnect;

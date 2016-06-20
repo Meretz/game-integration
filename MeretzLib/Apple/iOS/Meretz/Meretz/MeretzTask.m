@@ -73,7 +73,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 	// endpoint: e.g. "/vendor/connect_user"
 	- (NSString *) buildEndpointURL: (NSString *) endpoint;
 
-	- (BOOL) launchSessionTask:(NSString *)url
+	- (BOOL) launchSessionTask:(NSString *_Nonnull)url
 		customHeaders: (NSDictionary *) headers
 		httpMethod: (HTTPMethod) method
 		apiData: (NSDictionary *) data
@@ -96,6 +96,14 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 /* ---------- implementation */
 
 @implementation MeretzTask
+
+	@synthesize MeretzInstance;
+	@synthesize TaskStatus;
+	@synthesize TaskType;
+	@synthesize Session;
+	@synthesize SessionDataTask;
+	@synthesize TaskInput;
+	@synthesize TaskOutput;
 
 	/* ---------- public methods */
 
@@ -203,7 +211,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 			case MeretzTaskTypeVendorConsume: success= [self beginWorkVendorConsume]; break;
 			case MeretzTaskTypeVendorUsePoints: success= [self beginWorkVendorUsePoints]; break;
 			case MeretzTaskTypeVendorUserProfile: success= [self beginWorkVendorUserProfile]; break;
-			default: NSAssert(FALSE, @"unhandled task type '%d'!", self.TaskType); success= FALSE; break;
+			default: NSAssert(FALSE, @"unhandled task type '%ld'!", (long)self.TaskType); success= FALSE; break;
 		}
 		
 		return success;
@@ -244,7 +252,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		return result;
 	}
 
-	- (BOOL) launchSessionTask:(NSString *)url
+	- (BOOL) launchSessionTask:(NSString *_Nonnull)url
 		customHeaders: (NSDictionary *) headers
 		httpMethod: (HTTPMethod) method
 		apiData: (NSDictionary *) data
@@ -271,7 +279,8 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 			
 			if (nil != self.Session)
 			{
-				NSMutableURLRequest *request= [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+				NSURL *nsurl= [NSURL URLWithString:url];
+				NSMutableURLRequest *request= [NSMutableURLRequest requestWithURL:nsurl];
 				
 				if (nil != request)
 				{
@@ -280,7 +289,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 					if ((nil != data) && (0 < [data count]))
 					{
 						NSError *jsonSerializationError= nil;
-						NSData *requestData= [NSJSONSerialization dataWithJSONObject:data options:0 error:&jsonSerializationError];
+						NSData *requestData= [NSJSONSerialization dataWithJSONObject:data options:(NSJSONWritingOptions)0 error:&jsonSerializationError];
 						
 						if (nil != jsonSerializationError)
 						{
@@ -289,7 +298,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 						
 						if (nil != requestData)
 						{
-							[request setValue:[NSString stringWithFormat:@"%d", [requestData length]] forHTTPHeaderField:HTTP_HEADER_KEY_CONTENT_LENGTH];
+							[request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[requestData length]] forHTTPHeaderField:HTTP_HEADER_KEY_CONTENT_LENGTH];
 							[request setHTTPBody:requestData];
 						}
 						else
@@ -347,13 +356,13 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 			{
 				NSInteger statusCode= [(NSHTTPURLResponse *)response statusCode];
 
-				NSLog(@"Meretz: %@ returned HTTP status code: %d", taskTypeString, statusCode);
+				NSLog(@"Meretz: %@ returned HTTP status code: %ld", taskTypeString, (long)statusCode);
 				// NOTE: Meretz APIs will try to return result data even for failure status codes
 			}
 			
 			// try to retrieve JSON results
 			NSError *jsonDeserializeError= nil;
-			NSDictionary *jsonDict= (nil != data) ? [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonDeserializeError] : nil;
+			NSDictionary *jsonDict= (nil != data) ? [NSJSONSerialization JSONObjectWithData:data options:(NSJSONReadingOptions)0 error:&jsonDeserializeError] : nil;
 			
 			if (nil != jsonDeserializeError)
 			{
@@ -566,11 +575,10 @@ NSString *HTTPMethodToString(
 		case HTTPMethodCONNECT: result= @"CONNECT"; break;
 		case HTTPMethodPATCH: result= @"PATCH"; break;
 		default:
-			NSLog(@"Meretz: unknown HTTP method '%d'!", method);
+			NSLog(@"Meretz: unknown HTTP method '%ld'!", (long)method);
 			result= nil;
 			break;
 	}
 	
 	return result;
 }
-

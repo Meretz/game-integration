@@ -36,9 +36,6 @@ const unsigned short kDefaultHTTPSPort= 443;
 	@property (nonatomic, retain) NSNumber *MeretzServerPort;
 	@property (nonatomic, retain) NSString *MeretzServerApiPath;
 
-	// the unique vendor access token give to you by Meretz
-	@property (nonatomic, retain) NSString *VendorAccessToken;
-
 	// a unique user access token retrieved initially via a vendorUserConnect call,
 	// then stored by your app and used for future interactions with the Meretz API
 	@property (nonatomic, retain) NSString *UserAccessToken;
@@ -57,6 +54,10 @@ const unsigned short kDefaultHTTPSPort= 443;
 /* ---------- implementation */
 
 @implementation MeretzItemDefinition
+	@synthesize PublicId;
+	@synthesize Name;
+	@synthesize Description;
+
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzItemDefinition: PublicId= '%@', Name= '%@', Description= '%@'",
@@ -65,6 +66,12 @@ const unsigned short kDefaultHTTPSPort= 443;
 @end
 
 @implementation MeretzItem
+	@synthesize PublicId;
+	@synthesize ItemDefinition;
+	@synthesize Price;
+	@synthesize Code;
+	@synthesize ConsumedTime;
+
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzItem: PublicId= '%@', ItemDefinition= [%@], Price= '%@', Code= '%@', ConsumedTime= '%@'",
@@ -73,6 +80,10 @@ const unsigned short kDefaultHTTPSPort= 443;
 @end
 
 @implementation MeretzResult
+	@synthesize Success;
+	@synthesize ErrorCode;
+	@synthesize ErrorMessage;
+
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@'",
@@ -81,6 +92,8 @@ const unsigned short kDefaultHTTPSPort= 443;
 @end
 
 @implementation MeretzVendorUserConnectResult
+	@synthesize AccessToken;
+
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzVendorUserConnectResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', AccessToken= '%@'",
@@ -89,6 +102,8 @@ const unsigned short kDefaultHTTPSPort= 443;
 @end
 
 @implementation MeretzVendorConsumeResult
+	@synthesize Items;
+
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzVendorConsumeResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', Items= %@",
@@ -97,6 +112,9 @@ const unsigned short kDefaultHTTPSPort= 443;
 @end
 
 @implementation MeretzVendorUserProfileResult
+	@synthesize UsablePoints;
+	@synthesize TotalPoints;
+
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzVendorUserProfileResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', UsablePoints= '%@', TotalPoints= '%@'",
@@ -105,44 +123,30 @@ const unsigned short kDefaultHTTPSPort= 443;
 @end
 
 @implementation Meretz
+	@synthesize TaskDictionary;
+	@synthesize MeretzServerProtocol;
+	@synthesize MeretzServerHostName;
+	@synthesize MeretzServerPort;
+	@synthesize MeretzServerApiPath;
+	@synthesize UserAccessToken;
 
 	/* ---------- public methods */
 
 	// call this to initialize Meretz for your organization's application
-	// with your unique vendor access token (as given to you by Meretz)
-	// and an optional, previously stored user access token if you have
-	// previously connected a game user
-	- (instancetype)initWithTokens: (NSString *) vendorSecretToken emptyOrSavedValue: (NSString *) userAccessToken;
+	- (instancetype)init;
 	{
-		if (0 < [vendorSecretToken length])
+		self= [super init];
+		
+		if (nil != self)
 		{
-			[self setVendorAccessToken:vendorSecretToken];
-			[self setUserAccessToken:@""];
-			
-			self= [super init];
-			
-			if (nil != self)
+			if ([self initialize])
 			{
-				if ([self initialize])
-				{
-					NSLog(@"Meretz: v.%X initialized with vendor access token '%@'", MERETZ_VERSION, self.VendorAccessToken);
-					if (0 < [userAccessToken length])
-					{
-						[self setMeretzUserAccessToken:userAccessToken];
-					}
-					
-					NSLog(@"Meretz: REST API server: %@", [self getMeretzServerString]);
-				}
-				else
-				{
-					return nil;
-				}
+				NSLog(@"Meretz: v.%X initialized, using REST API server: %@", MERETZ_VERSION, [self getMeretzServerString]);
 			}
-		}
-		else
-		{
-			NSAssert(FALSE, @"Meretz API use requires a valid vendor access token!");
-			return nil;
+			else
+			{
+				return nil;
+			}
 		}
 		
 		return self;
@@ -162,7 +166,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		return;
 	}
 
-	- (void) setMeretzPort: (NSUInteger) port
+	- (void) setMeretzPort: (unsigned short) port
 	{
 		[self setMeretzServerPort:[NSNumber numberWithUnsignedShort:port]];
 		
@@ -259,7 +263,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		}
 		else
 		{
-			NSLog(@"Meretz: attempted to release an invalid task '%d'!", taskId);
+			NSLog(@"Meretz: attempted to release an invalid task '%X'!", taskId);
 		}
 		
 		return;
@@ -317,7 +321,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		}
 		else
 		{
-			NSLog(@"Meretz: No VendorUserConnect task for id '%d'", vendorUserConnectTask);
+			NSLog(@"Meretz: No VendorUserConnect task for id '%X'", vendorUserConnectTask);
 		}
 		
 		return result;
@@ -372,7 +376,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		}
 		else
 		{
-			NSLog(@"Meretz: No VendorUserDisconnect task for id '%d'", vendorUserDisconnectTask);
+			NSLog(@"Meretz: No VendorUserDisconnect task for id '%X'", vendorUserDisconnectTask);
 		}
 		
 		return result;
@@ -420,9 +424,9 @@ const unsigned short kDefaultHTTPSPort= 443;
 					[dateFormatter setTimeZone:[NSTimeZone timeZoneWithName:@"GMT"]];
 					[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZ"];
 					
-					for (int itemIndex= 0, itemCount= [items count]; itemIndex < itemCount; itemIndex+= 1)
+					for (int itemIndex= 0, itemCount= (int)[items count]; itemIndex < itemCount; itemIndex+= 1)
 					{
-						NSObject *itemObject= items[itemIndex];
+						NSObject *itemObject= [items objectAtIndex:(unsigned)itemIndex];
 						NSObject *itemDefinitionObject= [itemObject valueForKey:@"item_definition"];
 						NSString *itemDefPublicId= (nil != itemDefinitionObject) ? [itemDefinitionObject valueForKey:@"public_id"] : nil;
 						NSString *itemDefName= (nil != itemDefinitionObject) ? [itemDefinitionObject valueForKey:@"name"] : nil;
@@ -471,7 +475,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		}
 		else
 		{
-			NSLog(@"Meretz: No MeretzVendorConsumeResult task for id '%d'", vendorConsumeTask);
+			NSLog(@"Meretz: No MeretzVendorConsumeResult task for id '%X'", vendorConsumeTask);
 		}
 		
 		return result;
@@ -527,7 +531,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		}
 		else
 		{
-			NSLog(@"Meretz: No VendorUsePoints task for id '%d'", vendorUsePointsTask);
+			NSLog(@"Meretz: No VendorUsePoints task for id '%X'", vendorUsePointsTask);
 		}
 		
 		return result;
@@ -586,7 +590,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		}
 		else
 		{
-			NSLog(@"Meretz: No MeretzVendorUserProfileResult task for id '%d'", vendorUserProfileTask);
+			NSLog(@"Meretz: No MeretzVendorUserProfileResult task for id '%X'", vendorUserProfileTask);
 		}
 		
 		return result;
@@ -599,6 +603,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 	{
 		BOOL success= FALSE;
 		
+		[self setUserAccessToken:@""];
 		[self setMeretzServerProtocol:DEFAULT_MERETZ_SERVER_PROTOCOL];
 		[self setMeretzServerHostName:DEFAULT_MERETZ_SERVER_HOST_NAME];
 		[self setMeretzServerPort:[NSNumber numberWithUnsignedShort:DEFAULT_MERETZ_SERVER_PORT]];

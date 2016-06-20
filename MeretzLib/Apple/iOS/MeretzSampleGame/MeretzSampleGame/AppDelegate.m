@@ -3,7 +3,7 @@
 //  MeretzSampleGame
 //
 //  Created by Stefan Sinclair on 5/31/16.
-//  Copyright © 2016 Meretz. All rights reserved.
+//  Copyright © 2016 E-Squared Labs - All rights reserved.
 //
 
 #import "AppDelegate.h"

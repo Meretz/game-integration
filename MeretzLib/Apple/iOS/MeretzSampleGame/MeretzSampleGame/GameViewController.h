@@ -3,7 +3,7 @@
 //  MeretzSampleGame
 //
 
-//  Copyright (c) 2016 Meretz. All rights reserved.
+//  Copyright (c) 2016 E-Squared Labs - All rights reserved.
 //
 
 #import <UIKit/UIKit.h>

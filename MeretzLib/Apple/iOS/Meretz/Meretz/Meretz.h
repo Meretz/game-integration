@@ -98,10 +98,7 @@ typedef NS_ENUM(NSInteger, MeretzTaskStatus)
 @interface Meretz : NSObject
 
 	// call this to initialize Meretz for your organization's application
-	// with your unique vendor access token (as given to you by Meretz)
-	// and an optional, previously stored user access token if you have
-	// previously connected a game user
-	- (instancetype) initWithTokens: (NSString *) vendorSecretToken emptyOrSavedValue: (NSString *) userAccessToken;
+	- (instancetype) init;
 
 	// use these to configure destination server settings as needed (intended for development use only)
 	// defaults are: https://www,meretz.com/api , where:
@@ -111,7 +108,7 @@ typedef NS_ENUM(NSInteger, MeretzTaskStatus)
 	// apiPath= "/api"
 
 	- (void) setMeretzHostName: (NSString *) hostName;
-	- (void) setMeretzPort: (NSUInteger) port;
+	- (void) setMeretzPort: (unsigned short) port;
 	- (void) setMeretzProtocol: (NSString *) protocol;
 	- (void) setMeretzAPIPath: (NSString *) apiPath;
 
