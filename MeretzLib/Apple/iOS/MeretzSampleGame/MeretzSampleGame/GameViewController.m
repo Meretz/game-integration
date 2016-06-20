@@ -42,7 +42,7 @@ Sample game usage instructions:
 
 */
 
-#define TEST_MERETZ_USER_CONNECTION_CODE		@"de8fcde09bf2"
+#define TEST_MERETZ_USER_CONNECTION_CODE		@"def123abc456"
 #define SAMPLE_GAME_USER_IDENTIFIER				@"MeretzSampleGameUser"
 
 typedef NS_ENUM(NSInteger, MeretzSampleGameState)
@@ -109,7 +109,7 @@ static void updateSamepleGameState(void)
 					// initiate a /vendor/consume task
 					NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
 					[dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss zzz"];
-					NSDate *startDate= [dateFormatter dateFromString: @"2016-04-01 00:00:00 GMT"]; // use the current date here
+					NSDate *startDate= [dateFormatter dateFromString: @"2016-04-01 00:00:00 GMT"];
 					NSDate *endDate= nil;
 					gVendorConsumeTaskId= [gMeretz vendorConsume:startDate optional:endDate];
 					
