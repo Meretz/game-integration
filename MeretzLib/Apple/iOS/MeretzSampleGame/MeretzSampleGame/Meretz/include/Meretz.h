@@ -86,11 +86,29 @@ typedef NS_ENUM(NSInteger, MeretzTaskStatus)
 	@property (nonatomic, retain) NSArray* Items;
 @end
 
+/* $FUTURE
 @interface MeretzVendorUserProfileResult : MeretzResult
 	// # of points user can spend currently, will be an integer
 	@property (nonatomic, retain) NSNumber* UsablePoints;
 	// total # of points the user has, will be an integer >= usablePoints
 	@property (nonatomic, retain) NSNumber* TotalPoints;
+@end
+*/
+
+/* ---------- delegate protocol */
+
+@protocol MeretzDelegate<NSObject>
+@required
+	// called when a user connection with the Meretz back-end completes
+	// if successful (result.Success==TRUE), result.AccessToken should be saved and used for all future API calls
+	- (void) didVendorUserConnectFinish:(MeretzVendorUserConnectResult *)result;
+	// called when a user disconnection from the Meretz back-end completes
+	// if successful (result.Success==TRUE), the user is no longer connected with the Meretz backend and
+	// any saved access token is now invalid.
+	- (void) didVendorUserDisconnectFinish:(MeretzResult *)result;
+	// called when the user has purchased new items for your game using Meretz points
+	// if successful (result.Success==TRUE), result.Items contains any newly acquired items.
+	- (void) didVendorConsumeFinish:(MeretzVendorConsumeResult *)result;
 @end
 
 // Meretz API interface
@@ -99,6 +117,9 @@ typedef NS_ENUM(NSInteger, MeretzTaskStatus)
 
 	// call this to initialize Meretz for your organization's application
 	- (instancetype) init;
+
+	// set a delegate object
+	- (void)setMeretzDelegate:(id<MeretzDelegate>) newDelegate;
 
 	// use these to configure destination server settings as needed (intended for development use only)
 	// defaults are: https://www,meretz.com/api , where:
@@ -141,6 +162,7 @@ typedef NS_ENUM(NSInteger, MeretzTaskStatus)
 	- (MeretzTaskId) vendorConsume: (NSDate *) startDate optional: (NSDate *) endDate;
 	- (MeretzVendorConsumeResult *) getVendorConsumeResult: (MeretzTaskId) vendorConsumeTask;
 
+	/* $FUTURE not currently exposed on the back end
 	// Spending points on behalf of the current user (as indicated via the active AccessToken)
 	// pointQuantity: number of the current user's points to spend on their behalf
 	- (MeretzTaskId) vendorUsePoints: (NSInteger) pointQuantity;
@@ -149,7 +171,7 @@ typedef NS_ENUM(NSInteger, MeretzTaskStatus)
 	// Retrieving Meretz user information for the current user (as indicated via the active AccessToken)
 	- (MeretzTaskId) vendorUserProfile;
 	- (MeretzVendorUserProfileResult *) getVendorUserProfileResult: (MeretzTaskId) vendorUserProfileTask;
-
+	*/
 
 @end
 

@@ -21,8 +21,10 @@ typedef NS_ENUM(NSInteger, MeretzTaskType)
 	MeretzTaskTypeVendorUserConnect,
 	MeretzTaskTypeVendorUserDisconnect,
 	MeretzTaskTypeVendorConsume,
+	/* $FUTURE
 	MeretzTaskTypeVendorUsePoints,
 	MeretzTaskTypeVendorUserProfile,
+	*/
 };
 
 typedef NS_ENUM(NSInteger, HTTPMethod)
@@ -140,8 +142,9 @@ typedef NS_ENUM(NSInteger, HTTPStatus)
 @interface MeretzTask : NSObject
 
 	@property (nonatomic, retain) Meretz *MeretzInstance;
-	@property (nonatomic) MeretzTaskStatus TaskStatus;
-	@property (nonatomic) MeretzTaskType TaskType;
+	@property (nonatomic, assign) MeretzTaskStatus TaskStatus;
+	@property (nonatomic, assign) MeretzTaskType TaskType;
+	@property (nonatomic, assign) MeretzTaskId TaskId;
 		
 	@property (nonatomic, retain) NSURLSession *Session;
 	@property (nonatomic, retain) NSURLSessionDataTask *SessionDataTask;
@@ -151,12 +154,47 @@ typedef NS_ENUM(NSInteger, HTTPStatus)
 	- (instancetype)initVendorUserConnect: (NSString *) userConnectionCode vendorUserToken: (NSString *) vendorTokenForUser;
 	- (instancetype)initVendorUserDisconnect;
 	- (instancetype)initVendorConsume: (NSDate *) startDate optional: (NSDate *) endDate;
+	/* $FUTURE
 	- (instancetype)initVendorUsePoints: (NSInteger) pointQuantity;
 	- (instancetype)initVendorUserProfile;
-
+	*/
 	- (BOOL) beginWork;
 
 	- (NSDictionary *) getResult;
+@end
+
+/* ---------- private interface */
+
+@interface Meretz()
+
+	/* ---------- private properties */
+
+	@property (nonatomic, strong) id<MeretzDelegate> delegate;
+	@property (nonatomic, assign) BOOL DelegateRespondsToVendorUserConnect;
+	@property (nonatomic, assign) BOOL DelegateRespondsToVendorUserDisconnect;
+	@property (nonatomic, assign) BOOL DelegateRespondsToVendorConsume;
+
+	@property (nonatomic, retain) NSMutableDictionary *TaskDictionary;
+	@property (nonatomic, retain) NSString *MeretzServerProtocol;
+	@property (nonatomic, retain) NSString *MeretzServerHostName;
+	@property (nonatomic, retain) NSNumber *MeretzServerPort;
+	@property (nonatomic, retain) NSString *MeretzServerApiPath;
+
+	// a unique user access token retrieved initially via a vendorUserConnect call,
+	// then stored by your app and used for future interactions with the Meretz API
+	@property (nonatomic, retain) NSString *UserAccessToken;
+
+	/* ---------- private methods */
+
+	- (BOOL) initialize;
+
+	// Meretz task management
+	- (MeretzTaskId) addTask: (MeretzTask *) newTask;
+	- (NSNumber *) getTaskKey: (MeretzTaskId) taskId;
+	- (MeretzTask *) getTask: (MeretzTaskId) taskId;
+
+	-(void) taskDidFinish: (MeretzTaskId) taskId;
+
 @end
 
 /* ---------- functions */

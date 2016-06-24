@@ -86,9 +86,10 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 	- (BOOL) beginWorkVendorUserConnect;
 	- (BOOL) beginWorkVendorUserDisconnect;
 	- (BOOL) beginWorkVendorConsume;
+	/* $FUTURE
 	- (BOOL) beginWorkVendorUsePoints;
 	- (BOOL) beginWorkVendorUserProfile;
-
+	*/
 	- (NSString *) iso8601DateTimeString: (NSDate *) date;
 
 @end
@@ -100,6 +101,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 	@synthesize MeretzInstance;
 	@synthesize TaskStatus;
 	@synthesize TaskType;
+	@synthesize TaskId;
 	@synthesize Session;
 	@synthesize SessionDataTask;
 	@synthesize TaskInput;
@@ -119,6 +121,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		{
 			[self setTaskStatus:MeretzTaskStatusInvalid];
 			[self setTaskType:MeretzTaskTypeInvalid];
+			[self setTaskId:MERETZ_TASK_ID_INVALID];
 			
 			[self setSession:nil];
 			[self setSessionDataTask:nil];
@@ -175,6 +178,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		return self;
 	}
 
+	/* $FUTURE
 	- (instancetype)initVendorUsePoints: (NSInteger) pointQuantity
 	{
 		NSAssert(0 < pointQuantity, @"VendorUsePoints requires a positive value for point quantity!");
@@ -199,6 +203,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 		
 		return self;
 	}
+	*/
 
 	- (BOOL) beginWork
 	{
@@ -209,8 +214,10 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 			case MeretzTaskTypeVendorUserConnect: success= [self beginWorkVendorUserConnect]; break;
 			case MeretzTaskTypeVendorUserDisconnect: success= [self beginWorkVendorUserDisconnect]; break;
 			case MeretzTaskTypeVendorConsume: success= [self beginWorkVendorConsume]; break;
+			/* $FUTURE
 			case MeretzTaskTypeVendorUsePoints: success= [self beginWorkVendorUsePoints]; break;
 			case MeretzTaskTypeVendorUserProfile: success= [self beginWorkVendorUserProfile]; break;
+			*/
 			default: NSAssert(FALSE, @"unhandled task type '%ld'!", (long)self.TaskType); success= FALSE; break;
 		}
 		
@@ -234,8 +241,10 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 			case MeretzTaskTypeVendorUserConnect: result= STRINGIFY(MeretzTaskTypeVendorUserConnect); break;
 			case MeretzTaskTypeVendorUserDisconnect: result= STRINGIFY(MeretzTaskTypeVendorUserDisconnect); break;
 			case MeretzTaskTypeVendorConsume: result= STRINGIFY(MeretzTaskTypeVendorConsume); break;
+			/* $FUTURE
 			case MeretzTaskTypeVendorUsePoints: result= STRINGIFY(MeretzTaskTypeVendorUsePoints); break;
 			case MeretzTaskTypeVendorUserProfile: result= STRINGIFY(MeretzTaskTypeVendorUserProfile); break;
+			*/
 			default: result= STRINGIFY(<unknown>); break;
 		}
 		
@@ -371,7 +380,7 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 			else if (nil != jsonDict)
 			{
 				NSLog(@"Meretz: %@ returned JSON: %@", taskTypeString, jsonDict);
-				self.TaskOutput= [jsonDict copy];
+				[self setTaskOutput:[jsonDict copy]];
 			}
 			else
 			{
@@ -383,9 +392,12 @@ Copyright (c) 2016 by E-Squared Labs - All rights reserved
 			NSLog(@"Meretz: %@ experienced an error: %@", taskTypeString, error);
 		}
 		
-		self.TaskStatus= MeretzTaskStatusComplete;
+		[self setTaskStatus:MeretzTaskStatusComplete];
 		[self setSession:nil];
 		[self setSessionDataTask:nil];
+		
+		// signal our completion
+		[self.MeretzInstance taskDidFinish:self.TaskId];
 		
 		NSLog(@"Meretz: %@ complete", taskTypeString);
 		
