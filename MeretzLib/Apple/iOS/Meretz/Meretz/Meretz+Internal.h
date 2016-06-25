@@ -20,7 +20,10 @@ typedef NS_ENUM(NSInteger, MeretzTaskType)
 	MeretzTaskTypeInvalid = -1,
 	MeretzTaskTypeVendorUserConnect,
 	MeretzTaskTypeVendorUserDisconnect,
-	MeretzTaskTypeVendorConsume,
+	MeretzTaskTypeVendorConsumeWithinRange,
+	MeretzTaskTypeVendorConsumeGetNew,
+	MeretzTaskTypeVendorConsumeAcknowledge,
+	MeretzTaskTypeVendorConsumeGetNewAndAcknowledge,
 	/* $FUTURE
 	MeretzTaskTypeVendorUsePoints,
 	MeretzTaskTypeVendorUserProfile,
@@ -151,9 +154,12 @@ typedef NS_ENUM(NSInteger, HTTPStatus)
 	@property (nonatomic, retain) NSMutableDictionary *TaskInput;
 	@property (nonatomic, retain) NSMutableDictionary *TaskOutput;
 
-	- (instancetype)initVendorUserConnect: (NSString *) userConnectionCode vendorUserToken: (NSString *) vendorTokenForUser;
-	- (instancetype)initVendorUserDisconnect;
-	- (instancetype)initVendorConsume: (NSDate *) startDate optional: (NSDate *) endDate;
+	- (instancetype) initVendorUserConnect: (NSString *) userConnectionCode vendorUserToken: (NSString *) vendorTokenForUser;
+	- (instancetype) initVendorUserDisconnect;
+	- (instancetype) initVendorConsumeWithinRange: (NSDate *) startDate optional: (NSDate *) endDate;
+	- (instancetype) initVendorConsumeGetNew;
+	- (instancetype) initVendorConsumeAcknowledge: (NSArray *) meretzItemArray;
+	- (instancetype) initVendorConsumeGetNewAndAcknowledge;
 	/* $FUTURE
 	- (instancetype)initVendorUsePoints: (NSInteger) pointQuantity;
 	- (instancetype)initVendorUserProfile;
@@ -172,7 +178,9 @@ typedef NS_ENUM(NSInteger, HTTPStatus)
 	@property (nonatomic, strong) id<MeretzDelegate> delegate;
 	@property (nonatomic, assign) BOOL DelegateRespondsToVendorUserConnect;
 	@property (nonatomic, assign) BOOL DelegateRespondsToVendorUserDisconnect;
-	@property (nonatomic, assign) BOOL DelegateRespondsToVendorConsume;
+	@property (nonatomic, assign) BOOL DelegateRespondsToVendorConsumeWithinRange;
+	@property (nonatomic, assign) BOOL DelegateRespondsToVendorConsumeGetNew;
+	@property (nonatomic, assign) BOOL DelegateRespondsToVendorConsumeAcknowledge;
 
 	@property (nonatomic, retain) NSMutableDictionary *TaskDictionary;
 	@property (nonatomic, retain) NSString *MeretzServerProtocol;

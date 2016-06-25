@@ -77,6 +77,7 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 	-(void) beginVendorUserDisconnect;
 
 	// MeretzDelegate methods
+
 	// called when a user connection with the Meretz back-end completes
 	// if successful (result.Success==TRUE), result.AccessToken should be saved and used for all future API calls
 	- (void) didVendorUserConnectFinish:(MeretzVendorUserConnectResult *)result;
@@ -84,9 +85,15 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 	// if successful (result.Success==TRUE), the user is no longer connected with the Meretz backend and
 	// any saved access token is now invalid.
 	- (void) didVendorUserDisconnectFinish:(MeretzResult *)result;
-	// called when the user has purchased new items for your game using Meretz points
-	// if successful (result.Success==TRUE), result.Items contains any newly acquired items.
-	- (void) didVendorConsumeFinish:(MeretzVendorConsumeResult *)result;
+	// called when a vendorConsumeWithinRange task finishes
+	// if successful (result.Success==TRUE), result.Items contains all owned items within specified date range.
+	- (void) didVendorConsumeWithinRangeFinish:(MeretzVendorConsumeResult *)result;
+	// called when a vendorConsumeGetNew task finishes
+	// if successful (result.Success==TRUE), result.Items contains any newly acquired (un-consumed) items.
+	-(void) didVendorConsumeGetNewFinish:(MeretzVendorConsumeResult *)result;
+	// called when a vendorConsumeAcknowledge task finishes
+	// if successful (result.Success==TRUE), result.Items contains the acknowledged (consumed) items.
+	-(void) didVendorConsumeAcknowledgeFinish:(MeretzVendorConsumeResult *)result;
 
 @end
 
@@ -102,10 +109,22 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 
 	-(void) initializeMeretzDemo
 	{
+		// if we have previously saved a Meretz Access Token, use it
+		// your game will want to use a similar pattern
+		NSString *savedAccessToken= [self getSavedMeretzAccessToken];
+		if ((nil != savedAccessToken) && (0 < [savedAccessToken length]))
+		{
+			NSLog(@"Retrieved saved Meretz access token: %@", savedAccessToken);
+		}
+		
+		id useDelegate= USE_MERETZ_DELEGATE ? self : nil;
+		
 		// initialize Meretz lib
 		NSLog(@"Initializing Meretz");
-		self.MeretzAPI= [[Meretz alloc] init];
+		self.MeretzAPI= [[Meretz alloc] init:savedAccessToken optionalDelegate:useDelegate];
 		NSAssert(nil != self.MeretzAPI, @"Failed to initialize MeretzLib!");
+		
+		// setup some demo app state
 		self.SampleGameState= Initial;
 		self.VendorConnectUserTaskId= MERETZ_TASK_ID_INVALID;
 		self.VendorConsumeTaskId= MERETZ_TASK_ID_INVALID;
@@ -114,16 +133,7 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 		self.ConnectionCodeTextField= nil;
 		self.ConnectionCode= @"";
 		
-		// if we have previously saved a Meretz Access Token, use it
-		// your game will want to use a similar pattern
-		NSString *savedAccessToken= [self getSavedMeretzAccessToken];
-		if ((nil != savedAccessToken) && (0 < [savedAccessToken length]))
-		{
-			NSLog(@"Retrieved saved Meretz access token: %@", savedAccessToken);
-			[MeretzAPI setMeretzUserAccessToken:savedAccessToken];
-		}
-		
-		if (FALSE)
+		if (TRUE)
 		{
 			// point Meretz at a custom dev server
 			[MeretzAPI setMeretzHostName:@"127.0.0.1"];
@@ -131,11 +141,6 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 			[MeretzAPI setMeretzProtocol: @"http"];
 			[MeretzAPI setMeretzAPIPath:@""];
 			NSLog(@"Meretz server set to: %@", [MeretzAPI getMeretzServerString]);
-		}
-		
-		if (USE_MERETZ_DELEGATE)
-		{
-			[MeretzAPI setMeretzDelegate:self];
 		}
 		
 		[self initializeMeretzDemoUI];
@@ -305,7 +310,7 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 					{
 						MeretzVendorConsumeResult *consumeResults= [MeretzAPI getVendorConsumeResult:self.VendorConsumeTaskId];
 						
-						[self didVendorConsumeFinish:consumeResults];
+						[self didVendorConsumeWithinRangeFinish:consumeResults];
 					}
 					else
 					{
@@ -373,24 +378,31 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 		// initiate a user connection task
 		NSString *userConnectionCode= self.ConnectionCodeTextField.text;
 		NSString *vendorUserIdentifier= SAMPLE_GAME_USER_IDENTIFIER;
-		MeretzTaskId result= [MeretzAPI vendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier];
 		
-		if (MERETZ_TASK_ID_INVALID != result)
+		if (USE_MERETZ_DELEGATE)
 		{
-			NSLog(@"initiating vendorUserConnect with connection code '%@'", userConnectionCode);
-			self.SampleGameState= Connecting;
+			if (![MeretzAPI startVendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier])
+			{
+				NSLog(@"startVendorUserConnect failed!");
+			}
 		}
 		else
 		{
-			NSLog(@"failed to initiate vendorUserConnect!");
-			self.SampleGameState= Idle;
-		}
-		
-		self.ConnectionCodeTextField.text= @"";
-		
-		// if we're acting as a Meretz delegate, there is no need to save the task handle
-		if (!USE_MERETZ_DELEGATE)
-		{
+			MeretzTaskId result= [MeretzAPI vendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier];
+			
+			if (MERETZ_TASK_ID_INVALID != result)
+			{
+				NSLog(@"initiating vendorUserConnect with connection code '%@'", userConnectionCode);
+				self.SampleGameState= Connecting;
+			}
+			else
+			{
+				NSLog(@"failed to initiate vendorUserConnect!");
+				self.SampleGameState= Idle;
+			}
+			
+			self.ConnectionCodeTextField.text= @"";
+			
 			self.VendorConnectUserTaskId= result;
 		}
 		
@@ -401,25 +413,31 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 	{
 		if ([self userIsConnectedWithMeretz])
 		{
-			NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-			[dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss zzz"];
-			NSDate *startDate= [dateFormatter dateFromString: @"2016-04-01 00:00:00 GMT"]; // using a date sufficiently in the past to catch recent purchases
-			NSDate *endDate= nil;
-			MeretzTaskId result= [MeretzAPI vendorConsume:startDate optional:endDate];
-			
-			if (MERETZ_TASK_ID_INVALID != result)
+			if (USE_MERETZ_DELEGATE)
 			{
-				self.SampleGameState= Consuming;
+				if (![MeretzAPI startVendorConsumeNewItems])
+				{
+					NSLog(@"startVendorConsumeNewItems failed!");
+				}
 			}
 			else
 			{
-				NSLog(@"failed to initiate a /vendor/consume call!");
-				self.SampleGameState= Idle;
-			}
-			
-			// if we're acting as a Meretz delegate, there is no need to save the task handle
-			if (!USE_MERETZ_DELEGATE)
-			{
+				NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+				[dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss zzz"];
+				NSDate *startDate= [dateFormatter dateFromString: @"2016-04-01 00:00:00 GMT"]; // using a date sufficiently in the past to catch recent purchases
+				NSDate *endDate= nil;
+				MeretzTaskId result= [MeretzAPI vendorConsumeWithinRange:startDate optional:endDate];
+				
+				if (MERETZ_TASK_ID_INVALID != result)
+				{
+					self.SampleGameState= Consuming;
+				}
+				else
+				{
+					NSLog(@"failed to initiate a /vendor/consume call!");
+					self.SampleGameState= Idle;
+				}
+				
 				self.VendorConsumeTaskId= result;
 			}
 		}
@@ -436,21 +454,27 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 	{
 		if ([self userIsConnectedWithMeretz])
 		{
-			MeretzTaskId result= [MeretzAPI vendorUserDisconnect];
-			
-			if (MERETZ_TASK_ID_INVALID != result)
+			if (USE_MERETZ_DELEGATE)
 			{
-				self.SampleGameState= Disconnecting;
+				if (![MeretzAPI startVendorUserDisconnect])
+				{
+					NSLog(@"startVendorUserDisconnect failed!");
+				}
 			}
 			else
 			{
-				NSLog(@"failed to initiate a /vendor/disconnect call!");
-				self.SampleGameState= Idle;
-			}
-			
-			// if we're acting as a Meretz delegate, there is no need to save the task handle
-			if (!USE_MERETZ_DELEGATE)
-			{
+				MeretzTaskId result= [MeretzAPI vendorUserDisconnect];
+				
+				if (MERETZ_TASK_ID_INVALID != result)
+				{
+					self.SampleGameState= Disconnecting;
+				}
+				else
+				{
+					NSLog(@"failed to initiate a /vendor/disconnect call!");
+					self.SampleGameState= Idle;
+				}
+				
 				self.VendorDisconnectUserTaskId= result;
 			}
 		}
@@ -532,11 +556,47 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 		return;
 	}
 
-	// called when the user has purchased new items for your game using Meretz points
-	// if successful (result.Success==TRUE), result.Items contains any newly acquired items.
-	- (void) didVendorConsumeFinish:(MeretzVendorConsumeResult *)result
+	// called when a vendorConsumeWithinRange task finishes
+	// if successful (result.Success==TRUE), result.Items contains all owned items within specified date range.
+	- (void) didVendorConsumeWithinRangeFinish:(MeretzVendorConsumeResult *)result
 	{
-		NSLog(@"VendorConsume results: %@", result);
+		NSLog(@"VendorConsumeWithinRange results: %@", result);
+		
+		if (MERETZ_TASK_ID_INVALID != self.VendorConsumeTaskId)
+		{
+			// release our /vendor/consume task results
+			[MeretzAPI releaseTask:self.VendorConsumeTaskId];
+			self.VendorConsumeTaskId= MERETZ_TASK_ID_INVALID;
+		}
+		
+		self.SampleGameState= Idle;
+		
+		return;
+	}
+
+	// called when a vendorConsumeGetNew task finishes
+	// if successful (result.Success==TRUE), result.Items contains any newly acquired (un-consumed) items.
+	-(void) didVendorConsumeGetNewFinish:(MeretzVendorConsumeResult *)result
+	{
+		NSLog(@"VendorConsumeGetNew results: %@", result);
+		
+		if (MERETZ_TASK_ID_INVALID != self.VendorConsumeTaskId)
+		{
+			// release our /vendor/consume task results
+			[MeretzAPI releaseTask:self.VendorConsumeTaskId];
+			self.VendorConsumeTaskId= MERETZ_TASK_ID_INVALID;
+		}
+		
+		self.SampleGameState= Idle;
+		
+		return;
+	}
+
+	// called when a vendorConsumeAcknowledge task finishes
+	// if successful (result.Success==TRUE), result.Items contains the acknowledged (consumed) items.
+	-(void) didVendorConsumeAcknowledgeFinish:(MeretzVendorConsumeResult *)result
+	{
+		NSLog(@"VendorConsumeAcknowledge results: %@", result);
 		
 		if (MERETZ_TASK_ID_INVALID != self.VendorConsumeTaskId)
 		{
