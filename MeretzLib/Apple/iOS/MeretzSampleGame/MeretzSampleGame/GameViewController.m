@@ -133,7 +133,7 @@ typedef NS_ENUM(NSInteger, MeretzSampleGameState)
 		self.ConnectionCodeTextField= nil;
 		self.ConnectionCode= @"";
 		
-		if (TRUE)
+		if (FALSE)
 		{
 			// point Meretz at a custom dev server
 			[MeretzAPI setMeretzHostName:@"127.0.0.1"];
