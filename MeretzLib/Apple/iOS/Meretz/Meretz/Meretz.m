@@ -24,33 +24,6 @@ const unsigned short kDefaultHTTPSPort= 443;
 #define DEFAULT_MERETZ_SERVER_PORT						kDefaultHTTPSPort
 #define DEFAULT_MERETZ_SERVER_API_PATH					@"/api"
 
-/* ---------- private interface */
-
-@interface Meretz()
-
-	/* ---------- private properties */
-
-	@property (nonatomic, retain) NSMutableDictionary *TaskDictionary;
-	@property (nonatomic, retain) NSString *MeretzServerProtocol;
-	@property (nonatomic, retain) NSString *MeretzServerHostName;
-	@property (nonatomic, retain) NSNumber *MeretzServerPort;
-	@property (nonatomic, retain) NSString *MeretzServerApiPath;
-
-	// a unique user access token retrieved initially via a vendorUserConnect call,
-	// then stored by your app and used for future interactions with the Meretz API
-	@property (nonatomic, retain) NSString *UserAccessToken;
-
-	/* ---------- private methods */
-
-	- (BOOL) initialize;
-
-	// Meretz task management
-	- (MeretzTaskId) addTask: (MeretzTask *) newTask;
-	- (NSNumber *) getTaskKey: (MeretzTaskId) taskId;
-	- (MeretzTask *) getTask: (MeretzTaskId) taskId;
-
-@end
-
 /* ---------- implementation */
 
 @implementation MeretzItemDefinition
@@ -87,7 +60,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@'",
-		self.Success, self.ErrorCode, self.ErrorMessage];
+			self.Success, self.ErrorCode, self.ErrorMessage];
 	}
 @end
 
@@ -97,7 +70,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzVendorUserConnectResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', AccessToken= '%@'",
-		self.Success, self.ErrorCode, self.ErrorMessage, self.AccessToken];
+			self.Success, self.ErrorCode, self.ErrorMessage, self.AccessToken];
 	}
 @end
 
@@ -107,10 +80,11 @@ const unsigned short kDefaultHTTPSPort= 443;
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzVendorConsumeResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', Items= %@",
-		self.Success, self.ErrorCode, self.ErrorMessage, self.Items];
+			self.Success, self.ErrorCode, self.ErrorMessage, self.Items];
 	}
 @end
 
+/* $FUTURE
 @implementation MeretzVendorUserProfileResult
 	@synthesize UsablePoints;
 	@synthesize TotalPoints;
@@ -118,11 +92,18 @@ const unsigned short kDefaultHTTPSPort= 443;
 	- (NSString *)description
 	{
 		return [NSString stringWithFormat: @"MeretzVendorUserProfileResult: Success= %@, ErrorCode= '%@', ErrorMessage= '%@', UsablePoints= '%@', TotalPoints= '%@'",
-		self.Success, self.ErrorCode, self.ErrorMessage, self.UsablePoints, self.TotalPoints];
+			self.Success, self.ErrorCode, self.ErrorMessage, self.UsablePoints, self.TotalPoints];
 	}
 @end
+*/
 
 @implementation Meretz
+	@synthesize delegate;
+	@synthesize DelegateRespondsToVendorUserConnect;
+	@synthesize DelegateRespondsToVendorUserDisconnect;
+	@synthesize DelegateRespondsToVendorConsumeWithinRange;
+	@synthesize DelegateRespondsToVendorConsumeGetNew;
+	@synthesize DelegateRespondsToVendorConsumeAcknowledge;
 	@synthesize TaskDictionary;
 	@synthesize MeretzServerProtocol;
 	@synthesize MeretzServerHostName;
@@ -133,7 +114,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 	/* ---------- public methods */
 
 	// call this to initialize Meretz for your organization's application
-	- (instancetype)init;
+	- (instancetype) init: (NSString *) savedAccessToken optionalDelegate: (id<MeretzDelegate>) aDelegate
 	{
 		self= [super init];
 		
@@ -142,6 +123,16 @@ const unsigned short kDefaultHTTPSPort= 443;
 			if ([self initialize])
 			{
 				NSLog(@"Meretz: v.%X initialized, using REST API server: %@", MERETZ_VERSION, [self getMeretzServerString]);
+				
+				if ((nil != savedAccessToken) && (0 < [savedAccessToken length]))
+				{
+					[self setMeretzUserAccessToken: savedAccessToken];
+				}
+				
+				if (nil != aDelegate)
+				{
+					[self setMeretzDelegate:aDelegate];
+				}
 			}
 			else
 			{
@@ -150,6 +141,34 @@ const unsigned short kDefaultHTTPSPort= 443;
 		}
 		
 		return self;
+	}
+
+	// set a delegate object
+	- (void) setMeretzDelegate:(id<MeretzDelegate>) newDelegate
+	{
+		if (self.delegate != newDelegate)
+		{
+			if (nil != newDelegate)
+			{
+				[self setDelegateRespondsToVendorUserConnect: [newDelegate respondsToSelector:@selector(didVendorUserConnectFinish:)]];
+				[self setDelegateRespondsToVendorUserDisconnect: [newDelegate respondsToSelector:@selector(didVendorUserDisconnectFinish:)]];
+				[self setDelegateRespondsToVendorConsumeWithinRange: [newDelegate respondsToSelector:@selector(didVendorConsumeWithinRangeFinish:)]];
+				[self setDelegateRespondsToVendorConsumeGetNew: [newDelegate respondsToSelector:@selector(didVendorConsumeGetNewFinish:)]];
+				[self setDelegateRespondsToVendorConsumeAcknowledge: [newDelegate respondsToSelector:@selector(didVendorConsumeAcknowledgeFinish:)]];
+			}
+			else
+			{
+				[self setDelegateRespondsToVendorUserConnect:FALSE];
+				[self setDelegateRespondsToVendorUserDisconnect:FALSE];
+				[self setDelegateRespondsToVendorConsumeWithinRange:FALSE];
+				[self setDelegateRespondsToVendorConsumeGetNew:FALSE];
+				[self setDelegateRespondsToVendorConsumeAcknowledge:FALSE];
+			}
+			
+			self.delegate= newDelegate;
+		}
+		
+		return;
 	}
 
 	// use these to configure destination server settings as needed (intended for development use only)
@@ -239,6 +258,39 @@ const unsigned short kDefaultHTTPSPort= 443;
 		return;
 	}
 
+	#pragma mark high-level API, must be used with delegate
+
+	// User connection (link a game user to a Meretz user)
+	// userConnectionCode: code string which must be generated by the end
+	//   user themselves via the Meretz.com website for your registered application
+	// vendorUserIdentifier: vendor-supplied identification string identifying the user in vendor's namespace
+	-(BOOL) startVendorUserConnect: (NSString *) userConnectionCode vendorUserToken: (NSString *) vendorUserIdentifier
+	{
+		NSAssert(nil != self.delegate, @"A valid delegate is required to use the startVendorUserConnect API!");
+		
+		return (MERETZ_TASK_ID_INVALID != [self vendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier]);
+	}
+
+	// User disconnection (for the current user as indicated via the active AccessToken)
+	- (BOOL) startVendorUserDisconnect
+	{
+		NSAssert(nil != self.delegate, @"A valid delegate is required to use the startVendorUserDisconnect API!");
+		
+		return (MERETZ_TASK_ID_INVALID != [self vendorUserDisconnect]);
+	}
+
+	// Retrieve and acknowledge all items recently acquired with Meretz points
+	// When used, your delegate responder for didVendorConsumeAcknowledgeFinish is expected to do any work related to the returned MeretzItem list;
+	// the delegate responders for didVendorConsumeWithinRangeFinish and didVendorConsumeGetNewFinish can be empty.
+	-(BOOL) startVendorConsumeNewItems
+	{
+		NSAssert(nil != self.delegate, @"A valid delegate is required to use the startVendorConsumeNewItems API!");
+		
+		return (MERETZ_TASK_ID_INVALID != [self vendorConsumeGetNewAndAcknowledge]);
+	}
+
+	#pragma mark low-level task management, can be used with / without delegate
+
 	// query the status of a Meretz asynchronous task
 	- (MeretzTaskStatus) getTaskStatus: (MeretzTaskId) taskId
 	{
@@ -273,13 +325,8 @@ const unsigned short kDefaultHTTPSPort= 443;
 	- (MeretzTaskId) vendorUserConnect: (NSString *) userConnectionCode vendorUserToken: (NSString *) vendorUserIdentifier
 	{
 		NSAssert(0 < [userConnectionCode length], @"VendorUserConnect requires a valid user connection code!");
-		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
 		MeretzTask *task= [[MeretzTask alloc] initVendorUserConnect:userConnectionCode vendorUserToken:vendorUserIdentifier];
-		
-		if (nil != task)
-		{
-			taskId= [self addTask: task];
-		}
+		MeretzTaskId taskId= (nil != task) ? [self addTask: task] : MERETZ_TASK_ID_INVALID;
 		
 		return taskId;
 	}
@@ -330,13 +377,8 @@ const unsigned short kDefaultHTTPSPort= 443;
 	// User disconnection (for the current user as indicated via the active AccessToken)
 	- (MeretzTaskId) vendorUserDisconnect
 	{
-		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
 		MeretzTask *task= [[MeretzTask alloc] initVendorUserDisconnect];
-		
-		if (nil != task)
-		{
-			taskId= [self addTask: task];
-		}
+		MeretzTaskId taskId= (nil != task) ? [self addTask: task] : MERETZ_TASK_ID_INVALID;
 		
 		return taskId;
 	}
@@ -383,16 +425,41 @@ const unsigned short kDefaultHTTPSPort= 443;
 	}
 
 	// Item consumption over a date range
-	- (MeretzTaskId) vendorConsume: (NSDate *) startDate optional: (NSDate *) endDate
+	- (MeretzTaskId) vendorConsumeWithinRange: (NSDate *) startDate optional: (NSDate *) endDate
 	{
-		NSAssert(nil != startDate, @"VendorConsume requires a valid startDate!");
-		MeretzTaskId taskId= MERETZ_TASK_ID_INVALID;
-		MeretzTask *task= [[MeretzTask alloc] initVendorConsume:startDate optional:endDate];
+		NSAssert(nil != startDate, @"VendorConsumeWithinRange requires a valid startDate!");
+		MeretzTask *task= [[MeretzTask alloc] initVendorConsumeWithinRange:startDate optional:endDate];
+		MeretzTaskId taskId= (nil != task) ? [self addTask: task] : MERETZ_TASK_ID_INVALID;
 		
-		if (nil != task)
-		{
-			taskId= [self addTask: task];
-		}
+		return taskId;
+	}
+
+	// Retrieve a list of newly acquired items (read-only)
+	- (MeretzTaskId) vendorConsumeGetNew
+	{
+		
+		MeretzTask *task= [[MeretzTask alloc] initVendorConsumeGetNew];
+		MeretzTaskId taskId= (nil != task) ? [self addTask: task] : MERETZ_TASK_ID_INVALID;
+		
+		return taskId;
+	}
+
+	// Acknowledge "consumption" of newly acquired items returned from a vendorConsumeGetNew call
+	// input is an array of NSString objects set to the PublicId values of the MeretzItem objects being acknowledged
+	- (MeretzTaskId) vendorConsumeAcknowledge: (NSArray *) meretzItemPublicIdArray
+	{
+		NSAssert(nil != meretzItemPublicIdArray, @"VendorConsumeAcknowledge requires a valid array of NSString objects!");
+		MeretzTask *task= [[MeretzTask alloc] initVendorConsumeAcknowledge: meretzItemPublicIdArray];
+		MeretzTaskId taskId= (nil != task) ? [self addTask: task] : MERETZ_TASK_ID_INVALID;
+		
+		return taskId;
+	}
+
+	// Retrieve a list of newly acquired items (read-only), and then acknowledge these items (2-stage operation)
+	- (MeretzTaskId) vendorConsumeGetNewAndAcknowledge
+	{
+		MeretzTask *task= [[MeretzTask alloc] initVendorConsumeGetNewAndAcknowledge];
+		MeretzTaskId taskId= (nil != task) ? [self addTask: task] : MERETZ_TASK_ID_INVALID;
 		
 		return taskId;
 	}
@@ -481,6 +548,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		return result;
 	}
 
+	/* $FUTURE
 	// Spending points on behalf of the current user (as indicated via the active AccessToken)
 	- (MeretzTaskId) vendorUsePoints: (NSInteger) pointQuantity
 	{
@@ -536,7 +604,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		
 		return result;
 	}
-
+	
 	// Retrieving Meretz user information for the current user (as indicated via the active AccessToken)
 	- (MeretzTaskId) vendorUserProfile
 	{
@@ -595,13 +663,20 @@ const unsigned short kDefaultHTTPSPort= 443;
 		
 		return result;
 	}
-
+	*/
 
 	/* ---------- private methods */
 
 	- (BOOL) initialize
 	{
 		BOOL success= FALSE;
+		
+		self.delegate= nil;
+		[self setDelegateRespondsToVendorUserConnect:FALSE];
+		[self setDelegateRespondsToVendorUserDisconnect:FALSE];
+		[self setDelegateRespondsToVendorConsumeWithinRange:FALSE];
+		[self setDelegateRespondsToVendorConsumeGetNew:FALSE];
+		[self setDelegateRespondsToVendorConsumeAcknowledge:FALSE];
 		
 		[self setUserAccessToken:@""];
 		[self setMeretzServerProtocol:DEFAULT_MERETZ_SERVER_PROTOCOL];
@@ -644,7 +719,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 		}
 		
 		// claim ownership of this task
-		newTask.MeretzInstance= self;
+		[newTask setMeretzInstance:self];
 		
 		// attempt to spin up the task
 		if ([newTask beginWork])
@@ -655,6 +730,7 @@ const unsigned short kDefaultHTTPSPort= 443;
 			self.TaskDictionary[[taskKey stringValue]]= newTask;
 			// return the new taskId
 			taskId= [taskKey unsignedIntegerValue];
+			[newTask setTaskId:taskId];
 			NSLog(@"Meretz: new task '%@' (%X) added", newTask, taskId);
 		}
 		else
@@ -683,6 +759,93 @@ const unsigned short kDefaultHTTPSPort= 443;
 		NSAssert(nil != result, @"invalid MeretzTaskId!");
 		
 		return result;
+	}
+
+	// calls appropriate delegate method to signal task completion
+	-(void) taskDidFinish: (MeretzTaskId) taskId
+	{
+		MeretzTask *task= [self getTask:taskId];
+		
+		switch (task.TaskType)
+		{
+			case MeretzTaskTypeVendorUserConnect:
+			{
+				if (self.DelegateRespondsToVendorUserConnect)
+				{
+					MeretzVendorUserConnectResult *result= [self getVendorUserConnectResult:taskId];
+					
+					if (nil != result)
+					{
+						[self.delegate didVendorUserConnectFinish:result];
+					}
+				}
+				break;
+			}
+			case MeretzTaskTypeVendorUserDisconnect:
+			{
+				if (self.DelegateRespondsToVendorUserDisconnect)
+				{
+					MeretzResult *result= [self getVendorUserDisconnectResult:taskId];
+					
+					if (nil != result)
+					{
+						[self.delegate didVendorUserDisconnectFinish:result];
+					}
+				}
+				break;
+			}
+			case MeretzTaskTypeVendorConsumeWithinRange:
+			{
+				if (self.DelegateRespondsToVendorConsumeWithinRange)
+				{
+					MeretzVendorConsumeResult *result= [self getVendorConsumeResult:taskId];
+					
+					if (nil != result)
+					{
+						[self.delegate didVendorConsumeWithinRangeFinish:result];
+					}
+				}
+				break;
+			}
+			case MeretzTaskTypeVendorConsumeGetNew:
+			{
+				if (self.DelegateRespondsToVendorConsumeGetNew)
+				{
+					MeretzVendorConsumeResult *result= [self getVendorConsumeResult:taskId];
+					
+					if (nil != result)
+					{
+						[self.delegate didVendorConsumeGetNewFinish:result];
+					}
+				}
+				break;
+			}
+			case MeretzTaskTypeVendorConsumeAcknowledge:
+			case MeretzTaskTypeVendorConsumeGetNewAndAcknowledge:
+			{
+				if (self.DelegateRespondsToVendorConsumeAcknowledge)
+				{
+					MeretzVendorConsumeResult *result= [self getVendorConsumeResult:taskId];
+					
+					if (nil != result)
+					{
+						[self.delegate didVendorConsumeAcknowledgeFinish:result];
+					}
+				}
+				break;
+			}
+			/* $FUTURE
+			case MeretzTaskTypeVendorUsePoints:
+			case MeretzTaskTypeVendorUserProfile:
+			*/
+			default:
+			{
+				NSAssert(FALSE, @"unhandled task type '%ld'!", (long)task.TaskType);
+				break;
+			}
+		}
+		
+		return;
 	}
 
 @end

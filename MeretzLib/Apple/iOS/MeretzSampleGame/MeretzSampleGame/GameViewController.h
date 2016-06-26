@@ -9,6 +9,8 @@
 #import <UIKit/UIKit.h>
 #import <SceneKit/SceneKit.h>
 
-@interface GameViewController : UIViewController
+#import "Meretz/include/Meretz.h"
+
+@interface GameViewController : UIViewController<UITextFieldDelegate, MeretzDelegate>
 
 @end
