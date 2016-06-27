@@ -1,0 +1,432 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+<title>Meretz SDK for iOS</title>
+<style type="text/css" media="screen">
+<!--
+p, li { color: #666; font-size: 16px; font-family: "Lucida Grande", Arial, sans-serif; font-weight: normal; margin-top: 0; }
+h1 { color: #666; font-size: 60px; font-family: "Lucida Grande", Arial, sans-serif; font-weight: bold; text-align: center; letter-spacing: -1px; width: auto; }
+h2 { color: #778fbd; font-size: 18px; font-family: "Lucida Grande", Arial, sans-serif; font-weight: normal; margin: 0.83em 0 0; }
+h3 { color: #778fbd; font-size: 20px; font-family: "Lucida Grande", Arial, sans-serif; font-weight: 500; line-height: 32px; margin-top: 4px; }
+h4 { color: #778fbd; font-size: 14px; font-family: "Lucida Grande", Arial, sans-serif; font-weight: 500; line-height: 32px; margin-top: 4px; }
+a { color: #666; text-decoration: underline; }
+-->
+</style>
+</head>
+
+<body>
+
+<a name="introduction"></a>
+<p>
+<h1><img src="images/meretz-logo-notext-small.png" alt=""/>&nbsp;Meretz SDK for iOS</h1>
+<h3>Welcome!</h3>
+</p>
+
+<p>
+Thank you for your interest in the Meretz SDK for iOS!
+This guide will help you quickly integrate Meretz into your iOS application.
+</p>
+<p>
+This developement guide assumes the following:
+</p>
+	<ul>
+		<li>You are in contact with <a href="https://www.meretz.com/contact">Meretz developer support</a> to work out details about your specific product integration</li>
+		<li>You are familiar with iOS application development using Objective-C and the Cocoa APIs / Frameworks</li>
+	</ul>
+</p>
+<p>
+This guide walks you through the workings of the accompanying Sample Game, which illustrates the core
+concepts and functions involved with integrating the Meretz API. It also contains a brief overview of
+the Meretz SDK data structures and APIs.
+</p>
+<p>
+	<ul>
+	<li><a href="#quick_start">Quick Start</a>
+		<ul>
+			<li><a href="#sample_game">Meretz Sample Game</a>
+				<ul>
+					<li><a href="#product_page_overview">Game Product Page Overview</a></li>
+					<li><a href="#user_connect_code_generation">User Connect Code Generation</a></li>
+					<li><a href="#item_consumption">Item Consumption</a></li>
+				</ul>
+			</li>
+		</ul>
+	</li>
+	<li><a href="#api_reference">API Reference</a>
+		<ul>
+			<li><a href="#delegate_protocol">Meretz Delegate Protocol</a></li>
+			<li><a href="#data_structures">Data Structures</a></li>
+			<li><a href="#low_level_task_management">Low-Level Task Management</a></li>
+		</ul>
+	</li>
+	<li><a href="#contact">Developer Support Contact</a></li>
+	</ul>
+</p>
+
+<p>
+	<a name="quick_start"></a>
+	<h3>Quick Start</h3>
+</p>
+
+<p>
+To get you familiar with the Meretz SDK for iOS as quickly as possible, we will walk through step-by-step the integration
+of the Meretz SDK into the Apple Xcode iOS Game project template (which is what the MeretzSampleGame project is built upon).
+To begin, open up the Meretz Xcode project as well as the MeretzSampleGame Xcode project
+(found alongside the Meretz SDK for iOS repo).
+</p>
+
+<p>
+The first thing we will do is to build the Meretz SDK (a static library) for our target platform of choice, and then use it in the
+accompanying MeretzSampleGame Xcode project. For purposes of this demonstration, we will build for an iPhone 5 simulated device
+(ie, build and run against the iOS Simulator as an iPhone 5) for both projects. This involves the following steps:
+</p>
+
+<p>
+	<ol>
+	<li>Open up the Meretz.xcodeproj project file.</li>
+	<li>Set the target / active scheme to "iPhone 5" (simulator).<br clear="all" /><img src="images\xcode_target.png"></img></li>
+	<li>Build the project - it should build cleanly with no errors or warnings.</li>
+	<li>Note the build output:
+		<p>
+		<pre>
+		Debug-iphonesimulator\
+			libMeretz.a
+			include\
+				Meretz.h
+		</pre>
+		</p>
+	</li>
+	<li>Locate the static library file "libMeretz.a" in the MeretzSampleGame directory tree, and replace it with the one you just built.
+	<br clear="all" /><img src="images\libMeretz.a.png"></img></li>
+	<li>Close the Meretz.xcodeproj and open the MeretzSampleGame.xcodeproj file.</li>
+	<li>Once again, set the target / active scheme to "iPhone 5" (simulator).</li>
+	<li>Build and run the MeretzSampleGame project. It should build cleanly with no errors / warnings. Watch the Xcode console output
+	for log output from the program. It should look something like this:<br clear="all" />
+	<img src="images\06_SampleGame_Disconnected.png"></img></li>
+	</ol>
+</p>
+
+<p>
+Once you are successfully building and running the MeretzLib and MeretzSampleGame, you're ready to use the MeretzSampleGame
+to exercise integration with your specific game. We will use the game
+<a href="https://www.meretz.com/rewards/airwings">Air Wings</a> during this guide, but note that the process
+is the same for any product integrating with Meretz, including your own.
+</p>
+
+<p>
+<a href="#introduction"><big>&#9757; </big>Back to the top</a>
+<hr />
+</p>
+
+<p>
+<a name="sample_game"></a>
+<h3>MeretzSampleGame</h3>
+</p>
+<p>
+The MeretzSampleGame illustrates the implementation of the core components of Meretz integration, which are:
+</p>
+
+<p>
+	<ul>
+	<li>Connecting a local device user to a Meretz account on the Meretz back-end, and retrieving a secret access-token which is needed
+	for making any other calls to the Meretz back-end servers on their behalf.</li>
+	<li>Retrieving a list of any newly-acquired items for your title which they have obtained from the Meretz website using their Meretz points.
+	This operation is referred to as "consuming items"."</li>
+	<li>Disconnecting a local device user from their Meretz account on the back-end (revoking their secret access-token).</li>
+	</ul>
+</p>
+<p>
+As we go through these operations using the MeretzSampleGame, feel free to check out the game source code to see how the sample
+game is interacting with the Meretz APIs and consider how these processes might work within the context of your title.
+</p>
+
+<p>
+<a name="product_page_overview"></a>
+<h4>Game Product Page Overview</h4>
+</p>
+
+<p>
+<img src="images\01_AirWings.png" width=296 height=493 align="left"></img>
+The first thing we will do is take note of a few things on our product page on the Meretz website (again, using Air Wings as our example title).
+Your product page by default will have some descriptive data and images, along with a listing of one or more items which can be acquired for
+your title using Meretz points. <b>Note that you will need to be signed in as a Meretz user for these Meretz site pages to be accessible to you</b>,
+so go ahead and create (or request) a Meretz account now before proceeding further if needed.
+</p><br clear="all" />
+
+<p>
+<img src="images\02_AirWings_Expanded.png" width=296 height=493 align="left"></img>
+When you view the section showing additional product details, as shown here, observe there is a "Download" button.
+As of this writing, there are some additional parameters you can add to the URL for a product page in order to enable the
+browser UI for "Connect Code" generation, which is how a user will link their Meretz account with your product. This allows
+your app to access the Meretz back-end on their behalf without requiring the user to enter their Meretz login credentials
+into your app.
+</p><br clear="all" />
+
+<p>
+<img src="images\03_AirWings_ForceShowConnect.png" width=296 height=493 align="left"></img>
+To get the additional browser UI to show up, add the following parameters to the product page URL:
+</p>
+<p>
+<pre>?force_show=1&amp;override_comingsoon=1</pre>
+</p>
+<p>
+So for Air Wings, the URL will be: <a href="https://www.meretz.com/rewards/wizard101?force_show=1&override_comingsoon=1">
+https://www.meretz.com/rewards/wizard101?force_show=1&amp;override_comingsoon=1</a>
+</p>
+<p>
+Reload the product page using those additional URL parameters.
+</p><br clear="all" />
+
+<p>
+<a name="user_connect_code_generation"></a>
+<h4>User Connect Code Generation</h4>
+</p>
+
+<p>
+<img src="images\04_AirWings_ConnectButton.png" width=296 height=493 align="left"></img>
+You should now see a new button, "Connect", which is the entry point to an end user connecting their Meretz account
+to your app. Go ahead and click the "Connect" button now.
+</p><br clear="all" />
+
+<p>
+<img src="images\05_AirWings_ConnectCode.png" width=296 height=493 align="left"></img>
+You should now see a new "Connect Code" text field. This text field contains a unique, one-time-use code which can be used to generate
+a secrete access-key associated with the user for use in your app as a means of identification / authentication for that user. The
+Connect Code is only good for about an hour, so if you wait too long to use it you may need to generate another one.
+</p>
+<p>
+Go ahead and copy the Connect Code you just generated, and now launch the MeretzSampleGame which you built earlier.
+</p><br clear="all" />
+
+<p>
+<img src="images\06_SampleGame_Disconnected.png" width=296 height=493 align="left"></img>
+Upon initial launch of the MeretzSampleGame, it will be in a "disconnected" state, ie. no associated Meretz user account has been saved.
+Let's change that by entering in the "Connect Code" generated earlier on the Meretz website into the UITextField at the top of the view
+in the MeretzSampleGame. Doing so will initiate a call to the Meretz back-end to attempt an exchange of the input one-time-use
+connection code for a secret access-key which the game can save for all future interaction with the Meretz back-end on behalf of the
+user in your app.
+</p><br clear="all" />
+
+<p>
+<img src="images\07_SampleGame_ConnectCodeEntered.png" width=296 height=493 align="left"></img>
+After entering in your connection code into the UITextField, watch the Xcode console output for logged info as
+the connection process progresses; it should complete quickly. Once it has completed, the MeretzSampleGame should reflect a
+"connected" state, as shown below. Also note the console output showing the returned JSON from the HTTP calls to the Meretz back-end.
+</p><br clear="all" />
+
+<p>
+<img src="images\08_SampleGame_Connected_NoNewItems.png"></img>
+</p><br clear="all" />
+
+<p>
+<a href="#introduction"><big>&#9757; </big>Back to the top</a>
+<hr />
+</p>
+
+<p>
+<a name="item_consumption"></a>
+<h4>Item Consumption</h4>
+</p>
+
+<p>
+<img src="images\09_AirWings_ConnectedState.png" width=296 height=493 align="left"></img>
+Let's now return to the product page for our app on the Meretz website. As a reminder, the URL is:
+<a href="https://www.meretz.com/rewards/wizard101?force_show=1&override_comingsoon=1">
+https://www.meretz.com/rewards/wizard101?force_show=1&amp;override_comingsoon=1</a> Notice that we are now shown as
+being Connected with Meretz with regards to this app. Now that our Meretz account is connected with our app, our app will
+be able to detect when a user has acquired items for our app by exchanging Meretz points for them. We will walk through this
+process next.
+</p><br clear="all" />
+
+<p>
+<img src="images\10_AirWings_TwoPurchases.png" width=296 height=493 align="left"></img>
+Assuming you have some Meretz points in your account, go ahead and purchase a couple items for your app. Once your purchases
+have completed successfully, return to the MeretzSampleGame app.
+</p>
+<p>
+If you need some Meretz points, either amp up your workout routine or contact Meretz developer support to get some!
+</p><br clear="all" />
+
+<p>
+Back in the MeretzSampleGame app, any time you are in the "connected" state, you can initiate an "item consume" operation by
+clicking the "Consume Items" button. Go ahead and click that button now, and watch the Xcode console output.
+As you will see from the console log output, the items which you recently acquired on the Meretz website are now returned
+to the MeretzSampleGame. This would be the point where your app can take the appropriate action on behalf of the user to
+account for their recent acquisition of your app's items using Meretz points.
+</p>
+<p>
+<img src="images\11_SampleGame_TwoItemsConsumed.png"></img>
+</p><br clear="all" />
+
+<p>
+With that, we have explored the aspects of integrating Meretz into an iOS app using the Meretz SDK for iOS. Again, you are
+encouraged to dig into the MeretzSampleGame source code to see how things are working under the hood. You can also dive into
+the Meretz SDK source code as well, if desired, to look under the hood at how the SDK works.
+</p>
+
+<p>
+<a href="#introduction"><big>&#9757; </big>Back to the top</a>
+<hr />
+</p>
+
+<p>
+<a name="api_reference"></a>
+<h3>Meretz SDK API Reference</h3>
+</p>
+
+<p>
+The following sections of this guide give a high-level overview of the Meretz SDK for iOS, covering the
+data structures and interfaces that your iOS application will need to use and interact with.
+</p>
+
+<p>
+<a name="delegate_protocol"></a>
+<h3>Meretz Delegate Protocol</h3>
+</p>
+
+<p>
+Implementing the MeretzDelegate protocol is the simplest and most straightforward means of integrating the Meretz SDK into
+your iOS application. When implemented, the MeretzDelegate protocol will allow your app to be notified upon completion of
+any of the asynchronous operations available without the need to manage these operations in any way.
+</p>
+
+<p>
+To implement the MeretzDelegate protocol, your app will need to implement the following methods:
+	<ul>
+	<li><pre>- (void) didVendorUserConnectFinish:(MeretzVendorUserConnectResult *)result;</pre>
+	Called when a user connection with the Meretz back-end completes (via <b>startVendorUserConnect</b>).
+	If successful, the returned access token should be saved for future use.</li>
+	<li><pre>- (void) didVendorUserDisconnectFinish:(MeretzResult *)result;</pre>
+	Called when a user disconnection from the Meretz back-end completes (via <b>startVendorUserDisconnect</b>).
+	If successful, the user is no longer connected with the Meretz back end for your app and any saved
+	access token is now invalid and should be discarded.</li>
+	<li><pre>- (void) didVendorConsumeAcknowledgeFinish:(MeretzVendorConsumeResult *)result;</pre>
+	Called when an item consume task for any newly acquired items completes (via <b>startVendorConsumeNewItems</b>,
+	or the low-level API <b>vendorConsumeAcknowledge</b>).
+	If successul, the returned array of MeretzItem objects contain entries describing any items for your app
+	acquired with Meretz points since the last time you consumed items.</li>
+	<li><pre>- (void) didVendorConsumeWithinRangeFinish:(MeretzVendorConsumeResult *)result;</pre>
+	This is called only when the low-level task <b>vendorConsumeWithinRange</b> completes. If you do
+	not use that API, your delegate method for this selector can be empty; otherwise, upon completion it
+	will be passed an array of MeretzItem objects newly acquired with Meretz points within the date range
+	specified when <b>vendorConsumeWithinRange</b> was called.</li>
+	<li><pre>- (void) didVendorConsumeGetNewFinish:(MeretzVendorConsumeResult *)result;</pre>
+	This is called only when the low-level task <b>vendorConsumeGetNew</b> completes. If you do not use
+	that API, your delegate method for this selector can be empty; otherwise, upon completion it
+	will be passed an array of MeretzItem objects newly acquired with Meretz points, but not yet flagged as
+	having been "consumed" by your app. The flagging as "consumed" happens via a call to the low-level API
+	<b>vendorConsumeAcknowledge</b>.</li>
+	</ul>
+</p>
+
+<p>
+<a href="#introduction"><big>&#9757; </big>Back to the top</a>
+<hr />
+</p>
+
+<p>
+<a name="data_structures"></a>
+<h3>Meretz Data Structures</h3>
+</p>
+
+<p>
+The following data structures are used when interfacing with the Meretz backend via the Meretz SDK for iOS:
+</p>
+
+<p>
+	<ul>
+	<li><b>Meretz object:</b> an instance of an interface between a user and the Meretz back-end. Note that any such
+	interface is setup on a per-user basis per program run.
+	<pre>
+	@interface Meretz : NSObject { ... }
+	</pre></li>
+	<li><b>Meretz ItemDefinition object:</b> a container for meta-data on an app's item
+	<pre>
+	@interface MeretzItemDefinition : NSObject
+		@property (nonatomic, retain) NSString *PublicId;
+		@property (nonatomic, retain) NSString *Name;
+		@property (nonatomic, retain) NSString *Description;
+	@end
+	</pre></li>
+	<li><b>Meretz Item object:</b> a container for instance data on an item acquired by the end user for your app
+	from a transaction with the Meretz back-end
+	<pre>
+	@interface MeretzItem : NSObject
+		@property (nonatomic, retain) NSString *PublicId;
+		@property (nonatomic, retain) MeretzItemDefinition *ItemDefinition;
+		@property (nonatomic, retain) NSNumber *Price;
+		@property (nonatomic, retain) NSString *Code;
+		@property (nonatomic, retain) NSDate *ConsumedTime;
+	@end
+	</pre></li>
+	<li><b>Meretz API call result:</b> parent class for all asynchronous API operation results
+	<pre>
+	@interface MeretzResult : NSObject
+		// will be a BOOL, indicates successful execution of the requested operation
+		@property (nonatomic, retain) NSNumber* Success;
+		// MeretzAPIResult code
+		@property (nonatomic, retain) NSString* ErrorCode;
+		// human-readable error details
+		@property (nonatomic, retain) NSString* ErrorMessage;
+	@end
+	</pre></li>
+	<li><b>Meretz Vendor User Connect Result:</b> result from an asynchronous vendor-to-Meretz-user connection operation.
+	If successful, the AccessToken parameter should be saved off for use in future Meretz API calls.
+	<pre>
+	@interface MeretzVendorUserConnectResult : MeretzResult
+		// access-token GUID as a string
+		@property (nonatomic, retain) NSString* AccessToken;
+	@end
+	</pre></li>
+	<li><b>Meretz Vendor Item Consume Result:</b> result from any of the asynchronous vendor-item-consume operations.
+	Will contain an array of MeretzItem objects.
+	<pre>
+	@interface MeretzVendorConsumeResult : MeretzResult
+		// array of MeretzItem objects consumed
+		@property (nonatomic, retain) NSArray* Items;
+	@end
+	</pre></li>
+	</ul>
+</p>
+
+<p>
+<a href="#introduction"><big>&#9757; </big>Back to the top</a>
+<hr />
+</p>
+
+<p>
+<a name="low_level_task_management"></a>
+<h3>Low-Level Task Management</h3>
+</p>
+
+<p>
+Coming Soon - stay tuned!
+</p>
+
+<p>
+<a href="#introduction"><big>&#9757; </big>Back to the top</a>
+<hr />
+</p>
+
+<p>
+<a name="contact"></a>
+<h3>Developer Support Contact</h3>
+</p>
+
+<p>
+Please email <a href="mailto:team@meretz.com">The Meretz Team</a> with any comments or questions you have related to integrating the Meretz SDK for iOS.
+We will get back to you as soon as possible!
+</p>
+
+<p>
+Thank you again for your interest in Meretz!
+</p>
+
+<hr>
+<p>
+<small>Version 0.1 beta. Last updated June 27, 2016.</small>
+</p>
+
+</body>
+</html>
