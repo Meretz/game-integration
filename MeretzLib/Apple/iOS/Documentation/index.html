@@ -55,6 +55,7 @@ the Meretz SDK data structures and APIs.
 	</li>
 	<li><a href="#api_reference">API Reference</a>
 		<ul>
+			<li><a href="#initialization">Meretz Initialization</a></li>
 			<li><a href="#delegate_protocol">Meretz Delegate Protocol</a></li>
 			<li><a href="#data_structures">Data Structures</a></li>
 			<li><a href="#low_level_task_management">Low-Level Task Management</a></li>
@@ -280,6 +281,49 @@ the Meretz SDK source code as well, if desired, to look under the hood at how th
 <p>
 The following sections of this guide give a high-level overview of the Meretz SDK for iOS, covering the
 data structures and interfaces that your iOS application will need to use and interact with.
+</p>
+
+<p>
+<a name="initialization"></a>
+<h3>Meretz Initialization</h3>
+</p>
+
+<p>
+The following APIs are available to perform various aspects of Meretz API initialization. In most cases you will only need to
+call the <b>init</b> method, but there are other useful APIs as well, described below:
+</p>
+
+<p>
+	<ul>
+	<li><pre>- (instancetype) init: (NSString *) savedAccessToken optionalDelegate: (id<MeretzDelegate>) aDelegate;</pre>
+	Called to initialize Meretz. Inputs are an optional saved user access token, and an optional delegate object. In most cases,
+	this is the only Meretz-related setup call that will be required.</li>
+	<li><pre>- (void)setMeretzDelegate:(id<MeretzDelegate>) newDelegate;</pre>
+	Called to set (or clear) the Meretz delegate object directly, if needed.</li>
+	<li>APIs to use a non-default Meretz REST server instance:
+		<ul>
+		<li><pre>- (void) setMeretzHostName: (NSString *) hostName;</pre>
+		Set the Meretz server host name. The default is: <b>www.meretz.com</b></li>
+		<li><pre>- (void) setMeretzPort: (unsigned short) port;</pre>
+		Set the Meretz server port. The default is: <b>443</b></li>
+		<li><pre>- (void) setMeretzProtocol: (NSString *) protocol;</pre>
+		Set the Meretz REST protocol. The default is: <b>HTTPS</b></li>
+		<li><pre>- (void) setMeretzAPIPath: (NSString *) apiPath;</pre>
+		Set the Meretz REST API path. The default is: <b>/api</b></li>
+		</ul></li>
+	<li><pre>- (NSString *) getMeretzServerString;</pre>
+	Returns a string representation of the Meretz REST server settings.</li>
+	<li><pre>- (NSString *) getMeretzUserAccessToken;</pre>
+	Called to return the active Meretz user access-token.</li>
+	<li><pre>- (void) setMeretzUserAccessToken: (NSString *) accessToken;</pre>
+	Called to set the Meretz user access-token for the session. Usually you need only call this upon receipt of a new
+	user access token after a successful user connect, or to clear it after a user disconnect operation.</li>
+	</ul>
+</p>
+
+<p>
+<a href="#introduction"><big>&#9757; </big>Back to the top</a>
+<hr />
 </p>
 
 <p>
