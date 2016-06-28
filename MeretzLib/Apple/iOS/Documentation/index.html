@@ -158,9 +158,9 @@ so go ahead and create (or request) a Meretz account now before proceeding furth
 <img src="images\02_AirWings_Expanded.png" width=296 height=493 align="left"></img>
 When you view the section showing additional product details, as shown here, observe there is a "Download" button.
 As of this writing, there are some additional parameters you can add to the URL for a product page in order to enable the
-browser UI for "Connect Code" generation, which is how a user will link their Meretz account with your product. This allows
-your app to access the Meretz back-end on their behalf without requiring the user to enter their Meretz login credentials
-into your app.
+browser UI for "Connect Code" generation, which is how a user will link their Meretz account with your product. This one-time-use
+connection-code is exchanged for an access-key which your app saves and uses to access the Meretz back-end on their behalf. This way the
+end-user is not required to enter their Meretz login / password in the app, but can still communicate with the Meretz back-end in a secure manner.
 </p><br clear="all" />
 
 <p>
@@ -171,8 +171,8 @@ To get the additional browser UI to show up, add the following parameters to the
 <pre>?force_show=1&amp;override_comingsoon=1</pre>
 </p>
 <p>
-So for Air Wings, the URL will be: <a href="https://www.meretz.com/rewards/wizard101?force_show=1&override_comingsoon=1">
-https://www.meretz.com/rewards/wizard101?force_show=1&amp;override_comingsoon=1</a>
+So for Air Wings, the URL will be: <a href="https://www.meretz.com/rewards/airwings?force_show=1&override_comingsoon=1">
+https://www.meretz.com/rewards/airwings?force_show=1&amp;override_comingsoon=1</a>
 </p>
 <p>
 Reload the product page using those additional URL parameters.
@@ -192,7 +192,7 @@ to your app. Go ahead and click the "Connect" button now.
 <p>
 <img src="images\05_AirWings_ConnectCode.png" width=296 height=493 align="left"></img>
 You should now see a new "Connect Code" text field. This text field contains a unique, one-time-use code which can be used to generate
-a secrete access-key associated with the user for use in your app as a means of identification / authentication for that user. The
+a secret access-key associated with the user for use in your app as a means of identification / authentication for that user. The
 Connect Code is only good for about an hour, so if you wait too long to use it you may need to generate another one.
 </p>
 <p>
@@ -232,8 +232,8 @@ the connection process progresses; it should complete quickly. Once it has compl
 <p>
 <img src="images\09_AirWings_ConnectedState.png" width=296 height=493 align="left"></img>
 Let's now return to the product page for our app on the Meretz website. As a reminder, the URL is:
-<a href="https://www.meretz.com/rewards/wizard101?force_show=1&override_comingsoon=1">
-https://www.meretz.com/rewards/wizard101?force_show=1&amp;override_comingsoon=1</a> Notice that we are now shown as
+<a href="https://www.meretz.com/rewards/airwings?force_show=1&override_comingsoon=1">
+https://www.meretz.com/rewards/airwings?force_show=1&amp;override_comingsoon=1</a> Notice that we are now shown as
 being Connected with Meretz with regards to this app. Now that our Meretz account is connected with our app, our app will
 be able to detect when a user has acquired items for our app by exchanging Meretz points for them. We will walk through this
 process next.
@@ -253,7 +253,9 @@ Back in the MeretzSampleGame app, any time you are in the "connected" state, you
 clicking the "Consume Items" button. Go ahead and click that button now, and watch the Xcode console output.
 As you will see from the console log output, the items which you recently acquired on the Meretz website are now returned
 to the MeretzSampleGame. This would be the point where your app can take the appropriate action on behalf of the user to
-account for their recent acquisition of your app's items using Meretz points.
+account for their recent acquisition of your app's items using Meretz points. Your app's products are uniquely identified by
+the PublicId field, and other important product-related information is available as well. Refer to the <b>MeretzItem</b>
+object described below.
 </p>
 <p>
 <img src="images\11_SampleGame_TwoItemsConsumed.png"></img>
