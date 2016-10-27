@@ -1,0 +1,18 @@
+{
+    "prepare_queue": {
+        "installed": [],
+        "uninstalled": []
+    },
+    "config_munge": {
+        "files": {}
+    },
+    "installed_plugins": {
+        "cordova-plugin-whitelist": {
+            "PACKAGE_NAME": "com.meretz.hkdemo"
+        },
+        "com.telerik.plugins.healthkit": {
+            "PACKAGE_NAME": "com.meretz.hkdemo"
+        }
+    },
+    "dependent_plugins": {}
+}
