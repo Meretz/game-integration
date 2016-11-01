@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements.  See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership.  The ASF licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License.  You may obtain a copy of the License at
+ 
+ http://www.apache.org/licenses/LICENSE-2.0
+ 
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+
+ Meretz HeakthKit Demo Notes
+ ----------------------------
+
+ This Cordova demo app is based on the Telerik Cordova HealthKit plugin sample app
+ http://plugins.telerik.com/cordova/plugin/healthkit
+
+ Prerequisites:
+ 1) Have a Meretz alamo backend server with the /healthkit API endpoint code up, 
+    running and reachable by your iOS device over IP
+ 2) build and run this Cordova demo to an iOS device with HealthKit capabilities,
+    such as an iPhone running iOS 8 or later
+ 
+ The sample app demonstrates a variety of HealthKit API integration.
+ The APIs interesting for Meretz integration are:
+ * available() - test if HealthKit is available on the device
+ * requestAuthorization() - request permissions from the device HealthKit store
+ * querySampleTypeStepCount() - query step count
+ * querySampleTypeActiveEnergyBurned() - query energy burn, in units of calories
+ * querySampleTypeDistanceWalkingRunning() - query walking / running distance, in meters
+
+ The demo app queries step count, energy burn and distance for a 3 day window 
+ from the present -> back. This is arbitrary - the Meretz app will probably want to 
+ remember the most recent date of stat retrieval and use that date as the start of 
+ stat retrieval (when available), otherwise using some other reasonable value such
+ as a week or two into the past.
+
+ If HealthKit data for the respective sample type is successfully received from the 
+ HealthKit store, the demo then submits this data to the Meretz backend against the 
+ /healthkit/daily_stats endpoint for recording.
+
+ Note that the steps, calories and distance data can be submitted together, 
+ as opposed to individually as implemented in this demo, as the format for submitting 
+ this data to the Meretz backend is as follows:
+    curl -v
+      -H "Content-Type: application/json"
+      -H "X-Auth-Public-User-ID: <meretz_user_public_id>"
+      -H "X-Auth-Token: <meretz_user_auth_token>"
+      -d '[
+            {
+              "date" : "2016-10-31",
+              "stepCount" : 132, // NOTE: optional
+              "activeEnergyBurnedCalories" : 123.456, // NOTE: optional
+              "distanceWalkingRunningMeters" : 654.321 // NOTE: optional
+            },
+            ...
+          ]'
+      -X POST https://www.sandbox.meretz.com:51443/api/healthkit/daily_stats
+
+ To perform successful testing against your local development setup, 
+ modify the following variables in JavaScript below:
+ 
+ MERETZ_API_HEALTHKIT_URL : set to a URL reachable over IP by your iOS device
+ MERETZ_USER_PUBLIC_ID, MERETZ_USER_AUTH_TOKEN : set to valid user credentials for your test setup
+
+ Be sure to read through the complete JavaScript source below, 
+ especially the parts related to retrieval and submission of the step count, caloric burn and 
+ distance stats to the Meretz backend.
+
+-->
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="format-detection" content="telephone=no"/>
+  <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
+  <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi"/>
+  <link rel="stylesheet" type="text/css" href="css/index.css"/>
+  <meta name="msapplication-tap-highlight" content="no"/>
+  <title>Meretz HealthKit Demo</title>
+</head>
+<body>
+<div class="app">
+  <h1>Apache Cordova</h1>
+
+  <div id="deviceready" class="blink">
+    <p class="event listening">Connecting to Device</p>
+
+    <p class="event received">Device is Ready</p><br/>
+    <button onclick="available()">Health available?</button>
+    &nbsp;&nbsp;
+    <button onclick="requestAuthorization()">Request auth</button>
+    <br/><br/>
+    <button onclick="checkAuthStatus()">Check auth status</button>
+    <br/><br/>
+    <button onclick="readDateOfBirth()">Read birthdate</button>
+    &nbsp;&nbsp;
+    <button onclick="readGender()">Read gender</button>
+    <br/><br/>
+    <button onclick="readBloodType()">Read bloodtype</button>
+    &nbsp;&nbsp;
+    <button onclick="readFitzpatrickSkinType()">Fitzp. Skin type</button>
+    <br/><br/>
+    <button onclick="querySampleType()">Query Sample</button>
+    <br/><br/>
+    <button onclick="querySampleTypeStepCount()">Query Step Count</button>
+    <br/><br/>
+    <button onclick="querySampleTypeActiveEnergyBurned()">Query Active Energy Burned</button>
+    <br/><br/>
+    <button onclick="querySampleTypeDistanceWalkingRunning()">Query Distance Walking Running</button>
+    <br/><br/>
+    <button onclick="querySampleTypeAggregated()">Query Sample Aggregated</button>
+    <br/><br/>
+    <button onclick="saveHeight()">Save Height</button>
+    &nbsp;&nbsp;
+    <button onclick="readHeight()">Read Height</button>
+    <br/><br/>
+    <button onclick="saveWeight()">Save Weight</button>
+    &nbsp;&nbsp;
+    <button onclick="readWeight()">Read Weight</button>
+    <br/><br/>
+    <button onclick="saveWorkout()">Save Workout</button>
+    &nbsp;&nbsp;
+    <button onclick="findWorkouts()">Find Workouts</button>
+    <br/><br/>
+    <button onclick="monitorSampleType()">Monitor sample type</button>
+    <br/><br/>
+    <button onclick="sumQuantityType()">Sum quantity type</button>
+    <br/><br/>
+    <button onclick="saveQuantitySample_StepCount()">Save quantity sample (step count)</button>
+    <br/><br/>
+    <button onclick="saveQuantitySample_Energy()">Save quantity sample (energy)</button>
+    <br/><br/>
+    <button onclick="saveCorrelation()">Save correlation</button>
+    <br/><br/>
+    <button onclick="queryCorrelationTypeFood()">Query correlation food</button>
+    <br/><br/>
+    <button onclick="queryCorrelationTypeBloodPressure()">Query correlation blood pressure</button>
+    <br/><br/>
+  </div>
+</div>
+<script type="text/javascript" src="cordova.js"></script>
+<script type="text/javascript" src="js/index.js"></script>
+<script src="js/jquery-3.1.1.min.js"></script>
+<script type="text/javascript">
+
+  //###stefan $HACK set to a valid Meretz API server reachable by your device
+  var MERETZ_API_HEALTHKIT_URL = "https://www.sandbox.meretz.com:51443/api/healthkit/daily_stats";
+  //###stefan $HACK set these to impersonate a valid Meretz user (in this case, Stefan)
+  var MERETZ_USER_PUBLIC_ID = "59a615ec-9844-4a04-bb4d-a44674aba5bc";
+  var MERETZ_USER_AUTH_TOKEN = "19370497-bfc5-46f8-8072-2dffb243dc05";
+
+  window.onerror = function (a, b, c) {
+    alert(a);
+    alert(c);
+  };
+
+  app.initialize();
+
+  var successCallback = function (msg) {
+    // wrapping in a timeout because of a possbile native UI element blocking the webview
+    setTimeout(function () {
+      alert(JSON.stringify(msg))
+    }, 0);
+  };
+
+  var errorCallback = function(message) {
+    // wrapping in a timeout because of a possbile native UI element blocking the webview
+    setTimeout(function () {
+      alert(JSON.stringify(message))
+    }, 0);
+  };
+
+  var reportHealthKitData = function(healthKitJSONData) {
+    /*
+    format for reporting HealthKit data to Meretz:
+    curl -v
+      -H "Content-Type: application/json"
+      -H "X-Auth-Public-User-ID: <meretz_user_public_id>"
+      -H "X-Auth-Token: <meretz_user_auth_token>"
+      -d '[
+            {
+              "date" : "2016-10-31",
+              "stepCount" : 132, // NOTE: optional
+              "activeEnergyBurnedCalories" : 123.456, // NOTE: optional
+              "distanceWalkingRunningMeters" : 654.321 // NOTE: optional
+            },
+            ...
+          ]'
+      -X POST https://www.sandbox.meretz.com:51443/api/healthkit/daily_stats
+    */
+    var jsonText = JSON.stringify(healthKitJSONData);
+    var useHeaders = {
+      "X-Auth-Public-User-ID" :MERETZ_USER_PUBLIC_ID,
+      "X-Auth-Token" : MERETZ_USER_AUTH_TOKEN,
+      "Content-Type" : "application/json"
+    };
+    console.log("Submitting HealthKit data to " + MERETZ_API_HEALTHKIT_URL + " (headers = " + JSON.stringify(useHeaders) + ") ...\n\n" + jsonText);
+
+    $.ajax(
+      {
+        url: MERETZ_API_HEALTHKIT_URL,
+        headers: useHeaders,
+        method : "POST",
+        dataType : "json",
+        data : jsonText,
+        success : function(jsonResponse)
+        {
+          var message = "HealthKit data submitted : " + JSON.stringify(jsonResponse);
+          console.log(message);
+          alert(message)
+        },
+        error : function(response)
+        {
+          var message = "HealthKit data submission failed! " + JSON.stringify(response);
+          console.log(message);
+          alert(message);
+        }
+      }
+    );
+  };
+
+  var yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  var tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  function available() {
+    window.plugins.healthkit.available(
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function requestAuthorization() {
+    var supportedTypes = [
+      'HKQuantityTypeIdentifierHeight',
+      'HKQuantityTypeIdentifierStepCount',
+      'HKQuantityTypeIdentifierDistanceWalkingRunning',
+      'HKCategoryTypeIdentifierSleepAnalysis',
+      'HKQuantityTypeIdentifierDietaryEnergyConsumed',
+      'HKQuantityTypeIdentifierDietaryFatTotal'
+    ];
+
+    window.plugins.healthkit.requestAuthorization(
+        {
+          readTypes: supportedTypes,
+          writeTypes: supportedTypes
+        },
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function checkAuthStatus() {
+    window.plugins.healthkit.checkAuthStatus(
+        {
+          'type': 'HKQuantityTypeIdentifierHeight'
+        },
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function readDateOfBirth() {
+    window.plugins.healthkit.readDateOfBirth(
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function readGender() {
+    window.plugins.healthkit.readGender(
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function readBloodType() {
+    window.plugins.healthkit.readBloodType(
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function readFitzpatrickSkinType() {
+    window.plugins.healthkit.readFitzpatrickSkinType(
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function saveWeight() {
+    window.plugins.healthkit.saveWeight({
+          'requestReadPermission': false, // use if your app doesn't need to read
+          'unit': 'kg',
+          'amount': 78.5,
+          'date': new Date() // is 'now', which is the default as well
+        },
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function readWeight() {
+    window.plugins.healthkit.readWeight(
+        {
+          'requestWritePermission': true, // use if your app doesn't need to write
+          'unit': 'kg'
+        },
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function saveHeight() {
+    window.plugins.healthkit.saveHeight({
+          'requestReadPermission': false,
+          'unit': 'cm', // m|cm|mm|in|ft
+          'amount': 187
+        },
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function readHeight() {
+    window.plugins.healthkit.readHeight({
+          'requestWritePermission': false,
+          'unit': 'cm' // m|cm|mm|in|ft
+        },
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function findWorkouts() {
+    window.plugins.healthkit.findWorkouts({},
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function saveWorkout() {
+    window.plugins.healthkit.saveWorkout({
+          //'requestReadPermission' : false,
+          'activityType': 'HKWorkoutActivityTypeCycling', // HKWorkoutActivityType constant (https://developer.apple.com/library/ios/documentation/HealthKit/Reference/HKWorkout_Class/#//apple_ref/c/tdef/HKWorkoutActivityType)
+          'quantityType': 'HKQuantityTypeIdentifierDistanceCycling',
+          'startDate': new Date(), // mandatory
+          'endDate': null, // optional, use either this or duration
+          'duration': 3600, // in seconds, optional, use either this or endDate
+          'energy': 300, //
+          'energyUnit': 'kcal', // J|cal|kcal
+          'distance': 11, // optional
+          'distanceUnit': 'km' // probably useful with the former param
+          // 'extraData': "", // Not sure how necessary this is
+        },
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function querySampleType() {
+    window.plugins.healthkit.querySampleType(
+        {
+          'startDate': new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000), // three days ago
+          'endDate': new Date(), // now
+          'sampleType': 'HKQuantityTypeIdentifierBasalBodyTemperature',
+          //'sampleType': 'HKQuantityTypeIdentifierStepCount', // anything in HealthKit/HKTypeIdentifiers.h
+          'unit': 'degF' // make sure this is compatible with the sampleType
+        },
+        successCallback,
+        errorCallback
+    );
+  }
+
+  function querySampleTypeStepCount() {
+    /*
+    stepCount results will a list of objects, looking like:
+    [
+    {"quantity":35,"endDate":"2016-11-01T08:40:55-05:00","startDate":"2016-11-01T08:32:52-05:00","UUID":"16FC2686-4D74-4AD5-B224-5C5F3FD1E519","sourceBundleId":"com.apple.health.8568FAA5-16BA-4F83-AAE5-C69780695F5E","sourceName":"Stefan's iPhone SE","metadata":{}},
+    {"quantity":32,"endDate":"2016-11-01T08:31:58-05:00","startDate":"2016-11-01T08:25:30-05:00","UUID":"28783D22-5B62-463B-ADE8-6733934C4F4E","sourceBundleId":"com.apple.health.8568FAA5-16BA-4F83-AAE5-C69780695F5E","sourceName":"Stefan's iPhone SE","metadata":{}},
+    ...
+    ]
+    */
+    window.plugins.healthkit.querySampleType(
+        {
+          'startDate': new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000), // three days ago
+          'endDate': new Date(), // now
+          'sampleType': 'HKQuantityTypeIdentifierStepCount',
+          //'sampleType': 'HKQuantityTypeIdentifierStepCount', // anything in HealthKit/HKTypeIdentifiers.h
+          'unit': 'count' // make sure this is compatible with the sampleType
+        },
+        function (resultData) {
+          var dailyActivityData = [];
+
+          for (var i = 0; i < resultData.length; i += 1) {
+            // does entry look valid?
+            if (resultData[i].startDate && resultData[i].endDate && resultData[i].quantity) {
+              // key off of startDate
+              var activityDate = new Date(resultData[i].startDate);
+              var year = activityDate.getFullYear();
+              var month = activityDate.getMonth() + 1;
+              var day = activityDate.getDate();
+              var dateString = year + "-" + month + "-" + day;
+              var existingEntry = null;
+              var steps = resultData[i].quantity;
+
+              // create / update stat entry as appropriate
+              for (var j = 0; j < dailyActivityData.length; j += 1) {
+                if (dailyActivityData[j].date == dateString) {
+                  existingEntry = dailyActivityData[j];
+                  break;
+                }
+              }
+              
+              if (existingEntry) {
+                existingEntry.stepCount += steps;
+              } else {
+                dailyActivityData.push({
+                  date : dateString,
+                  stepCount : steps
+                });
+              }
+            } else {
+              console.log("Invalid HealthKit datum: " + resultData[i]);
+            }
+          }
+
+          reportHealthKitData(dailyActivityData);
+        },
+        errorCallback
+    );
+  }
+
+  function querySampleTypeActiveEnergyBurned() {
+    /*
+    calorie burn results will be a list of objects, looking like:
+    [
+      {"quantity":456000,"endDate":"2016-11-01T10:03:00-05:00","startDate":"2016-11-01T10:03:00-05:00","UUID":"F5839379-8695-4816-A1B4-0CF572B7274C","sourceBundleId":"com.apple.Health","sourceName":"Health","metadata":{"HKWasUserEntered":1}},
+      ...
+    ]
+    */
+    window.plugins.healthkit.querySampleType(
+        {
+          'startDate': new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000), // three days ago
+          'endDate': new Date(), // now
+          'sampleType': 'HKQuantityTypeIdentifierActiveEnergyBurned',
+          //'sampleType': 'HKQuantityTypeIdentifierStepCount', // anything in HealthKit/HKTypeIdentifiers.h
+          'unit': 'cal' // make sure this is compatible with the sampleType
+        },
+        function (resultData) {
+          var dailyActivityData = [];
+
+          for (var i = 0; i < resultData.length; i += 1) {
+            // does entry look valid?
+            if (resultData[i].startDate && resultData[i].endDate && resultData[i].quantity) {
+              // key off of startDate
+              var activityDate = new Date(resultData[i].startDate);
+              var year = activityDate.getFullYear();
+              var month = activityDate.getMonth() + 1;
+              var day = activityDate.getDate();
+              var dateString = year + "-" + month + "-" + day;
+              var existingEntry = null;
+              var calories = resultData[i].quantity;
+
+              // create / update stat entry as appropriate
+              for (var j = 0; j < dailyActivityData.length; j += 1) {
+                if (dailyActivityData[j].date == dateString) {
+                  existingEntry = dailyActivityData[j];
+                  break;
+                }
+              }
+              
+              if (existingEntry) {
+                existingEntry.activeEnergyBurnedCalories += steps;
+              } else {
+                dailyActivityData.push({
+                  date : dateString,
+                  activeEnergyBurnedCalories : calories
+                });
+              }
+            } else {
+              console.log("Invalid HealthKit datum: " + resultData[i]);
+            }
+          }
+
+          reportHealthKitData(dailyActivityData);
+        },
+        errorCallback
+    );
+  }
+
+  function querySampleTypeDistanceWalkingRunning() {
+    /*
+    distanceWalkingRunning results will be a list of objects, looking like:
+    [
+      {"quantity":24.16351618152112,"endDate":"2016-11-01T08:40:55-05:00","startDate":"2016-11-01T08:32:52-05:00","UUID":"0411065F-24D6-462C-8D41-99C46F1093D2","sourceBundleId":"com.apple.health.8568FAA5-16BA-4F83-AAE5-C69780695F5E","sourceName":"Stefan's iPhone SE","metadata":{}},{"quantity":17.51741234189831,"endDate":"2016-11-01T08:31:58-05:00","startDate":"2016-11-01T08:25:30-05:00","UUID":"7F6CC451-BD95-4382-85E2-15426DADE93B","sourceBundleId":"com.apple.health.8568FAA5-16BA-4F83-AAE5-C69780695F5E","sourceName":"Stefan's iPhone SE","metadata":{}},{"quantity":14.22895837482065,"endDate":"2016-11-01T08:12:27-05:00","startDate":"2016-11-01T08:06:01-05:00","UUID":"2C227D45-3690-48C5-9B70-2414BCAD8F2D","sourceBundleId":"com.apple.health.8568FAA5-16BA-4F83-AAE5-C69780695F5E","sourceName":"Stefan's iPhone SE","metadata":{}},
+      ...
+    ]
+    */
+    window.plugins.healthkit.querySampleType(
+        {
+          'startDate': new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000), // three days ago
+          'endDate': new Date(), // now
+          'sampleType': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+          //'sampleType': 'HKQuantityTypeIdentifierStepCount', // anything in HealthKit/HKTypeIdentifiers.h
+          'unit': 'm' // make sure this is compatible with the sampleType
+        },
+        function (resultData) {
+          var dailyActivityData = [];
+
+          for (var i = 0; i < resultData.length; i += 1) {
+            // does entry look valid?
+            if (resultData[i].startDate && resultData[i].endDate && resultData[i].quantity) {
+              // key off of startDate
+              var activityDate = new Date(resultData[i].startDate);
+              var year = activityDate.getFullYear();
+              var month = activityDate.getMonth() + 1;
+              var day = activityDate.getDate();
+              var dateString = year + "-" + month + "-" + day;
+              var existingEntry = null;
+              var meters = resultData[i].quantity;
+
+              // create / update stat entry as appropriate
+              for (var j = 0; j < dailyActivityData.length; j += 1) {
+                if (dailyActivityData[j].date == dateString) {
+                  existingEntry = dailyActivityData[j];
+                  break;
+                }
+              }
+              
+              if (existingEntry) {
+                existingEntry.meters += meters;
+              } else {
+                dailyActivityData.push({
+                  date : dateString,
+                  distanceWalkingRunningMeters : meters
+                });
+              }
+            } else {
+              console.log("Invalid HealthKit datum: " + resultData[i]);
+            }
+          }
+
+          reportHealthKitData(dailyActivityData);
+        },
+        errorCallback
+    );
+  }
+
+  function querySampleTypeAggregated() {
+    window.plugins.healthkit.querySampleTypeAggregated(
+        {
+          'startDate': new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000), // three days ago
+          'endDate': new Date(), // now
+          'aggregation': 'week', // 'hour', 'week', 'year' or 'day', default 'day'
+          'sampleType': 'HKQuantityTypeIdentifierStepCount', // any HKQuantityType
+          'unit': 'count' // make sure this is compatible with the sampleType
+        },
+        successCallback,
+        errorCallback
+    );
+  }
+
+  // this is work in progress
+  function monitorSampleType() {
+    window.plugins.healthkit.monitorSampleType(
+        {
+          'sampleType': 'HKCategoryTypeIdentifierSleepAnalysis'
+        },
+        function (value) {
+          // this gets called when a new sample is available (can then be fetched by a different function)
+          console.log("Sleep (webview): " + value);
+        },
+        errorCallback
+    );
+  }
+
+  function sumQuantityType() {
+    window.plugins.healthkit.sumQuantityType(
+        {
+          'startDate': new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000), // three days ago
+          'endDate': new Date(), // now
+          'sampleType': 'HKQuantityTypeIdentifierStepCount'
+        },
+        function (value) {
+          alert("Success for running step query " + value);
+        },
+        errorCallback
+    );
+  }
+
+  function saveQuantitySample_StepCount() {
+    window.plugins.healthkit.saveQuantitySample(
+        {
+          'startDate': new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // a day ago
+          'endDate': new Date(), // now
+          'sampleType': 'HKQuantityTypeIdentifierStepCount', // make sure you request write access beforehand
+          'unit': 'count',
+          'amount': 300
+        },
+        function (value) {
+          alert("Success running saveQuantitySample, result: " + value);
+        },
+        errorCallback
+    );
+  }
+
+  function saveQuantitySample_Energy() {
+    window.plugins.healthkit.saveQuantitySample(
+        {
+          'startDate': new Date(), // now
+          'endDate': new Date(), // now
+          'sampleType': 'HKQuantityTypeIdentifierDietaryEnergyConsumed', // make sure you request write access beforehand
+          'unit': 'kcal',
+          'amount': 64
+        },
+        function (value) {
+          alert("Success running saveQuantitySample, result: " + value);
+        },
+        errorCallback
+    );
+  }
+
+
+  function saveCorrelation() {
+    window.plugins.healthkit.saveCorrelation(
+        {
+          'startDate': new Date(), // now
+          'endDate': new Date(), // now
+          'metadata': {'a': 'b'},
+          'correlationType': 'HKCorrelationTypeIdentifierFood', // don't request write permission for this
+          'samples': [
+            {
+              'startDate': new Date(),
+              'endDate': new Date(),
+              'sampleType': 'HKQuantityTypeIdentifierDietaryEnergyConsumed', // make sure you request write access beforehand
+              'unit': 'kcal',
+              'amount': 500
+            },
+            {
+              'startDate': new Date(),
+              'endDate': new Date(),
+              'sampleType': 'HKQuantityTypeIdentifierDietaryFatTotal', // make sure you request write access beforehand
+              'unit': 'g',
+              'amount': 25
+            }
+          ]
+        },
+        function (value) {
+          alert("Success running saveCorrelation, result: " + value);
+        },
+        errorCallback
+    );
+  }
+
+  function queryCorrelationTypeFood() {
+    window.plugins.healthkit.queryCorrelationType(
+        {
+          'startDate': new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // a day ago
+          'endDate': new Date(), // now
+          'correlationType': 'HKCorrelationTypeIdentifierFood', // don't request read permission for this
+          'unit': 'g'
+        },
+        function (value) {
+          alert("Success running queryCorrelationType, result: " + JSON.stringify(value));
+        },
+        errorCallback
+    );
+  }
+
+  function queryCorrelationTypeBloodPressure() {
+    window.plugins.healthkit.queryCorrelationType(
+        {
+          'startDate': new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // a day ago
+          'endDate': new Date(), // now
+          'correlationType': 'HKCorrelationTypeIdentifierBloodPressure', // don't request read permission for this
+          'unit': 'Pa'
+        },
+        function (value) {
+          alert("Success running queryCorrelationType, result: " + JSON.stringify(value));
+        },
+        errorCallback
+    );
+  }
+
+</script>
+</body>
+</html>
